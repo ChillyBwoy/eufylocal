@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-muda-background: var(--muda-color-background);
+  --color-muda-foreground: var(--muda-color-foreground);
+  --color-muda-form-background: var(--muda-color-form-background);
+
+  --color-muda-primary: var(--muda-color-primary);
+  --color-muda-primary-light: var(--muda-color-primary-light);
+  --color-muda-primary-dark: var(--muda-color-primary-dark);
+
+  --color-muda-secondary: var(--muda-color-secondary);
+  --color-muda-secondary-light: var(--muda-color-secondary-light);
+  --color-muda-secondary-dark: var(--muda-color-secondary-dark);
+
+  --color-muda-success: var(--muda-color-success);
+  --color-muda-success-light: var(--muda-color-success-light);
+  --color-muda-success-dark: var(--muda-color-success-dark);
+
+  --color-muda-danger: var(--muda-color-danger);
+  --color-muda-danger-light: var(--muda-color-danger-light);
+  --color-muda-danger-dark: var(--muda-color-danger-dark);
+
+  --color-muda-warning: var(--muda-color-warning);
+  --color-muda-warning-light: var(--muda-color-warning-light);
+  --color-muda-warning-dark: var(--muda-color-warning-dark);
+
+  --color-muda-info: var(--muda-color-info);
+  --color-muda-info-light: var(--muda-color-info-light);
+  --color-muda-info-dark: var(--muda-color-info-dark);
+
+  --color-background: var(--muda-color-background);
+  --color-foreground: var(--muda-color-foreground);
+  --color-form-background: var(--muda-color-form-background);
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1 {
+    @apply text-2xl;
+  }
+  h2 {
+    @apply text-xl;
+  }
+  h3 {
+    @apply text-lg;
+  }
+}

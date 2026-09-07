@@ -11,6 +11,7 @@ wheels/
 
 # Misc
 .DS_Store
+.vscode
 
 # Local data and config
 .env
