@@ -6,33 +6,12 @@ import { MudaTable, MudaTableCell, MudaTableHead, MudaTableRow } from "@mudakit/
 import { MudaTag } from "@mudakit/ui/MudaTag";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 
-type BluetoothStatus = "idle" | "scanning" | "connecting" | "connected" | "error";
+import type { BleStatus, MeasurementResponse, StatusResponse } from "@/api";
+
 type TagVariant = "default" | "primary" | "secondary" | "success" | "danger" | "warning" | "info";
 
-interface Measurement {
-  measured_at: string;
-  weight_kg: number;
-  impedance_ohm: number | null;
-  device_id: string;
-  source: "advertisement" | "gatt";
-  raw_payload_hex: string;
-}
-
-interface StatusSnapshot {
-  bluetooth: {
-    status: BluetoothStatus;
-    device_id: string | null;
-    device_name: string | null;
-    last_error: string | null;
-    live_weight_kg: number | null;
-    live_weight_active: boolean;
-  };
-  last_measurement: Measurement | null;
-  server_time: string;
-}
-
-const snapshot = ref<StatusSnapshot | null>(null);
-const measurements = ref<Measurement[]>([]);
+const snapshot = ref<StatusResponse | null>(null);
+const measurements = ref<MeasurementResponse[]>([]);
 const loading = ref(true);
 const refreshError = ref<unknown>(null);
 let refreshing = false;
@@ -44,9 +23,9 @@ const liveWeight = computed(() => {
   return bluetooth?.live_weight_active ? bluetooth.live_weight_kg : null;
 });
 const currentWeight = computed(() => liveWeight.value ?? currentMeasurement.value?.weight_kg ?? null);
-const status = computed<BluetoothStatus>(() => snapshot.value?.bluetooth.status ?? "idle");
+const status = computed<BleStatus>(() => snapshot.value?.bluetooth.status ?? "idle");
 const statusVariant = computed<TagVariant>(() => {
-  const variants: Record<BluetoothStatus, TagVariant> = {
+  const variants: Record<BleStatus, TagVariant> = {
     idle: "secondary",
     scanning: "info",
     connecting: "warning",
@@ -80,8 +59,8 @@ async function refresh(): Promise<void> {
       throw new Error("The local server returned an error");
     }
 
-    snapshot.value = (await statusResponse.json()) as StatusSnapshot;
-    const payload = (await measurementsResponse.json()) as { measurements: Measurement[] };
+    snapshot.value = (await statusResponse.json()) as StatusResponse;
+    const payload = (await measurementsResponse.json()) as { measurements: MeasurementResponse[] };
     measurements.value = payload.measurements;
     refreshError.value = null;
   } catch (error) {
