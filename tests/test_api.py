@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 
-from eufylocal.db import Database, Measurement, MeasurementRepository
+from eufylocal.db import Database, MeasurementModel, MeasurementRepository
 from eufylocal.db.migration import upgrade_database
 from eufylocal.main import app, settings
 
@@ -41,14 +41,14 @@ def test_measurements_empty_list(tmp_path, monkeypatch) -> None:
     with client:
         response = client.get("/api/measurements")
         assert response.status_code == 200
-        assert response.json() == {"measurements": []}
+        assert response.json() == []
 
 
 def test_measurements_and_latest(tmp_path, monkeypatch) -> None:
     database_path = tmp_path / "api.db"
     upgrade_database(database_path)
     database = Database(database_path)
-    measurement = Measurement(
+    measurement = MeasurementModel(
         measured_at=datetime.now(UTC),
         weight_kg=77.7,
         impedance_ohm=None,
@@ -74,8 +74,8 @@ def test_measurements_and_latest(tmp_path, monkeypatch) -> None:
         assert latest["impedance_ohm"] is None
 
         listed = client.get("/api/measurements").json()
-        assert len(listed["measurements"]) == 1
-        assert listed["measurements"][0]["raw_payload_hex"] == "cf00000000000000000000"
+        assert len(listed) == 1
+        assert listed[0]["raw_payload_hex"] == "cf00000000000000000000"
 
 
 def test_measurements_limit_validation(tmp_path, monkeypatch) -> None:

@@ -10,9 +10,9 @@ export type ClientOptions = {
 export type BleStatus = "idle" | "scanning" | "connecting" | "connected" | "error";
 
 /**
- * BluetoothStatusResponse
+ * BluetoothStatus
  */
-export type BluetoothStatusResponse = {
+export type BluetoothStatus = {
   status: BleStatus;
   /**
    * Device Id
@@ -47,9 +47,9 @@ export type HttpValidationError = {
 };
 
 /**
- * MeasurementResponse
+ * Measurement
  */
-export type MeasurementResponse = {
+export type Measurement = {
   /**
    * Measured At
    */
@@ -77,21 +77,11 @@ export type MeasurementResponse = {
 };
 
 /**
- * MeasurementsResponse
+ * Status
  */
-export type MeasurementsResponse = {
-  /**
-   * Measurements
-   */
-  measurements: Array<MeasurementResponse>;
-};
-
-/**
- * StatusResponse
- */
-export type StatusResponse = {
-  bluetooth: BluetoothStatusResponse;
-  last_measurement: MeasurementResponse | null;
+export type Status = {
+  bluetooth: BluetoothStatus;
+  last_measurement: Measurement | null;
   /**
    * Server Time
    */
@@ -137,7 +127,7 @@ export type GetStatusResponses = {
   /**
    * Successful Response
    */
-  200: StatusResponse;
+  200: Status;
 };
 
 export type GetStatusResponse = GetStatusResponses[keyof GetStatusResponses];
@@ -151,7 +141,7 @@ export type GetMeasurementsData = {
      */
     limit?: number;
   };
-  url: "/api/measurements/";
+  url: "/api/measurements";
 };
 
 export type GetMeasurementsErrors = {
@@ -165,9 +155,11 @@ export type GetMeasurementsError = GetMeasurementsErrors[keyof GetMeasurementsEr
 
 export type GetMeasurementsResponses = {
   /**
+   * Response Get Measurements
+   *
    * Successful Response
    */
-  200: MeasurementsResponse;
+  200: Array<Measurement>;
 };
 
 export type GetMeasurementsResponse = GetMeasurementsResponses[keyof GetMeasurementsResponses];
@@ -185,7 +177,7 @@ export type GetLatestMeasurementResponses = {
    *
    * Successful Response
    */
-  200: MeasurementResponse | null;
+  200: Measurement | null;
 };
 
 export type GetLatestMeasurementResponse = GetLatestMeasurementResponses[keyof GetLatestMeasurementResponses];

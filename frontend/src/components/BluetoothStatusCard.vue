@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { MudaCard } from "@mudakit/ui/MudaCard";
 
-import { type BluetoothStatusResponse } from "@/api";
+import { type BluetoothStatus } from "@/api";
 import { formatTime } from "@/utils/format";
 
 defineProps<{
-  bluetooth?: BluetoothStatusResponse;
-  serverTime?: string;
+  bluetooth: BluetoothStatus | null;
+  serverTime: string | null;
 }>();
 </script>
 
@@ -21,7 +21,7 @@ defineProps<{
         </div>
         <div class="border-muda-secondary-light border-b pb-4 last:border-0">
           <dt class="text-muda-secondary mb-1 text-xs tracking-wider uppercase">Identifier</dt>
-          <dd class="m-0 font-mono font-medium text-xs break-all">{{ bluetooth?.device_id ?? "--" }}</dd>
+          <dd class="m-0 font-mono text-xs font-medium break-all">{{ bluetooth?.device_id ?? "--" }}</dd>
         </div>
         <div class="border-muda-secondary-light border-b pb-4 last:border-0">
           <dt class="text-muda-secondary mb-1 text-xs tracking-wider uppercase">Last sync</dt>

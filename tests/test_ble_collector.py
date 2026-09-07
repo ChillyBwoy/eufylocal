@@ -12,7 +12,7 @@ import eufylocal.ble_collector as ble_module
 import eufylocal.state as state_module
 from eufylocal.ble_collector import BLECollector, scan_and_print
 from eufylocal.config import Settings
-from eufylocal.db import Database, Measurement, MeasurementRepository
+from eufylocal.db import Database, MeasurementModel, MeasurementRepository
 from eufylocal.db.migration import upgrade_database
 from eufylocal.parser import extract_frame_from_manufacturer_data
 from eufylocal.state import AppState
@@ -54,7 +54,7 @@ def test_live_weight_is_active_only_before_final_measurement() -> None:
     assert state.snapshot()["bluetooth"]["live_weight_active"] is True
 
     state.set_last_measurement(
-        Measurement(
+        MeasurementModel(
             measured_at=datetime.now(UTC),
             weight_kg=75.2,
             impedance_ohm=None,

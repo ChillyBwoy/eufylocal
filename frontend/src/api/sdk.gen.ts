@@ -45,7 +45,7 @@ export const getMeasurements = <ThrowOnError extends boolean = false>(
   options?: Options<GetMeasurementsData, ThrowOnError>,
 ): RequestResult<GetMeasurementsResponses, GetMeasurementsErrors, ThrowOnError> =>
   (options?.client ?? client).get<GetMeasurementsResponses, GetMeasurementsErrors, ThrowOnError>({
-    url: "/api/measurements/",
+    url: "/api/measurements",
     ...options,
   });
 

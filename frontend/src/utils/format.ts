@@ -3,7 +3,10 @@ export function formatWeight(value: number | null): string {
 }
 
 export function formatTime(value: string | null | undefined): string {
-  if (!value) return "No measurement yet";
+  if (!value) {
+    return "No measurement yet";
+  }
+
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "medium",

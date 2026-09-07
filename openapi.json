@@ -18,7 +18,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/StatusResponse"
+                  "$ref": "#/components/schemas/Status"
                 }
               }
             }
@@ -26,7 +26,7 @@
         }
       }
     },
-    "/api/measurements/": {
+    "/api/measurements": {
       "get": {
         "tags": [
           "measurements"
@@ -53,7 +53,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MeasurementsResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Measurement"
+                  },
+                  "title": "Response Get Measurements"
                 }
               }
             }
@@ -86,7 +90,7 @@
                 "schema": {
                   "anyOf": [
                     {
-                      "$ref": "#/components/schemas/MeasurementResponse"
+                      "$ref": "#/components/schemas/Measurement"
                     },
                     {
                       "type": "null"
@@ -114,7 +118,7 @@
         ],
         "title": "BLEStatus"
       },
-      "BluetoothStatusResponse": {
+      "BluetoothStatus": {
         "properties": {
           "status": {
             "$ref": "#/components/schemas/BLEStatus"
@@ -177,7 +181,7 @@
           "live_weight_kg",
           "live_weight_active"
         ],
-        "title": "BluetoothStatusResponse"
+        "title": "BluetoothStatus"
       },
       "HTTPValidationError": {
         "properties": {
@@ -192,7 +196,7 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
-      "MeasurementResponse": {
+      "Measurement": {
         "properties": {
           "measured_at": {
             "type": "string",
@@ -240,33 +244,17 @@
           "source",
           "raw_payload_hex"
         ],
-        "title": "MeasurementResponse"
+        "title": "Measurement"
       },
-      "MeasurementsResponse": {
-        "properties": {
-          "measurements": {
-            "items": {
-              "$ref": "#/components/schemas/MeasurementResponse"
-            },
-            "type": "array",
-            "title": "Measurements"
-          }
-        },
-        "type": "object",
-        "required": [
-          "measurements"
-        ],
-        "title": "MeasurementsResponse"
-      },
-      "StatusResponse": {
+      "Status": {
         "properties": {
           "bluetooth": {
-            "$ref": "#/components/schemas/BluetoothStatusResponse"
+            "$ref": "#/components/schemas/BluetoothStatus"
           },
           "last_measurement": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/MeasurementResponse"
+                "$ref": "#/components/schemas/Measurement"
               },
               {
                 "type": "null"
@@ -285,7 +273,7 @@
           "last_measurement",
           "server_time"
         ],
-        "title": "StatusResponse"
+        "title": "Status"
       },
       "ValidationError": {
         "properties": {

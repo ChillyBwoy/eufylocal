@@ -13,7 +13,7 @@ class BLEStatus(StrEnum):
     ERROR = "error"
 
 
-class MeasurementResponse(BaseModel):
+class Measurement(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     measured_at: datetime
@@ -24,11 +24,7 @@ class MeasurementResponse(BaseModel):
     raw_payload_hex: str
 
 
-class MeasurementsResponse(BaseModel):
-    measurements: list[MeasurementResponse]
-
-
-class BluetoothStatusResponse(BaseModel):
+class BluetoothStatus(BaseModel):
     status: BLEStatus
     device_id: str | None
     device_name: str | None
@@ -37,7 +33,7 @@ class BluetoothStatusResponse(BaseModel):
     live_weight_active: bool
 
 
-class StatusResponse(BaseModel):
-    bluetooth: BluetoothStatusResponse
-    last_measurement: MeasurementResponse | None
+class Status(BaseModel):
+    bluetooth: BluetoothStatus
+    last_measurement: Measurement | None
     server_time: datetime

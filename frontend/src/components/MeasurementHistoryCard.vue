@@ -3,11 +3,11 @@ import { MudaCard } from "@mudakit/ui/MudaCard";
 import { MudaTable, MudaTableCell, MudaTableHead, MudaTableRow } from "@mudakit/ui/MudaTable";
 import { MudaTag } from "@mudakit/ui/MudaTag";
 
-import { type MeasurementResponse } from "@/api";
+import { type Measurement } from "@/api";
 import { formatTime } from "@/utils/format";
 
 defineProps<{
-  measurements: MeasurementResponse[];
+  measurements: Measurement[];
 }>();
 </script>
 
@@ -35,9 +35,9 @@ defineProps<{
         <template #body>
           <MudaTableRow v-for="measurement in measurements" :key="measurement.measured_at + measurement.device_id">
             <MudaTableCell class="whitespace-nowrap">{{ formatTime(measurement.measured_at) }}</MudaTableCell>
-            <MudaTableCell class="font-mono font-semibold tabular-nums"
-              >{{ measurement.weight_kg.toFixed(2) }} kg</MudaTableCell
-            >
+            <MudaTableCell class="font-mono font-semibold tabular-nums">
+              {{ measurement.weight_kg.toFixed(2) }} kg
+            </MudaTableCell>
             <MudaTableCell class="font-mono tabular-nums">
               {{ measurement.impedance_ohm === null ? "--" : `${measurement.impedance_ohm.toFixed(1)} Ω` }}
             </MudaTableCell>

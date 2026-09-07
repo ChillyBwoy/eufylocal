@@ -3,7 +3,7 @@
 export { getLatestMeasurement, getMeasurements, getStatus, type Options } from "./sdk.gen";
 export type {
   BleStatus,
-  BluetoothStatusResponse,
+  BluetoothStatus,
   ClientOptions,
   GetLatestMeasurementData,
   GetLatestMeasurementResponse,
@@ -17,8 +17,7 @@ export type {
   GetStatusResponse,
   GetStatusResponses,
   HttpValidationError,
-  MeasurementResponse,
-  MeasurementsResponse,
-  StatusResponse,
+  Measurement,
+  Status,
   ValidationError,
 } from "./types.gen";

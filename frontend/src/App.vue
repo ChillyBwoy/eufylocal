@@ -2,28 +2,55 @@
 import { type MudaComponentVariant } from "@mudakit/ui";
 import { MudaErrorBox } from "@mudakit/ui/MudaErrorBox";
 import { MudaSpinner } from "@mudakit/ui/MudaSpinner";
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted } from "vue";
 
-import { type BleStatus, type MeasurementResponse, type StatusResponse } from "@/api";
+import { type BleStatus, getMeasurements, getStatus } from "@/api";
 import AppHeader from "@/components/AppHeader.vue";
 import BluetoothStatusCard from "@/components/BluetoothStatusCard.vue";
 import CurrentWeightCard from "@/components/CurrentWeightCard.vue";
 import MeasurementHistoryCard from "@/components/MeasurementHistoryCard.vue";
+import { useApi } from "@/composables/useApi";
 
-const snapshot = ref<StatusResponse | null>(null);
-const measurements = ref<MeasurementResponse[]>([]);
-const loading = ref(true);
-const refreshError = ref<unknown>(null);
-let refreshing = false;
-let refreshTimer: number | undefined;
+const { start: startPolling, state } = useApi.poll(
+  () =>
+    useApi.all({
+      measurements: getMeasurements({ query: { limit: 50 }, throwOnError: true }),
+      snapshot: getStatus({ throwOnError: true }),
+    }),
+  3_000,
+);
 
-const currentMeasurement = computed(() => snapshot.value?.last_measurement ?? measurements.value[0] ?? null);
+const currentMeasurement = computed(() => {
+  if (state.value.status === "idle") {
+    return null;
+  }
+
+  const data = state.value.status === "success" ? state.value.result : state.value.prevResult;
+  return data?.snapshot.last_measurement ?? data?.measurements[0] ?? null;
+});
+
 const liveWeight = computed(() => {
-  const bluetooth = snapshot.value?.bluetooth;
+  if (state.value.status === "idle") {
+    return null;
+  }
+
+  const data = state.value.status === "success" ? state.value.result : state.value.prevResult;
+  const bluetooth = data?.snapshot.bluetooth;
   return bluetooth?.live_weight_active ? bluetooth.live_weight_kg : null;
 });
+
 const currentWeight = computed(() => liveWeight.value ?? currentMeasurement.value?.weight_kg ?? null);
-const status = computed<BleStatus>(() => snapshot.value?.bluetooth.status ?? "idle");
+
+const status = computed<BleStatus>(() => {
+  if (state.value.status === "idle") {
+    return "idle";
+  }
+
+  const data = state.value.status === "success" ? state.value.result : state.value.prevResult;
+
+  return data?.snapshot.bluetooth.status ?? "idle";
+});
+
 const statusVariant = computed<MudaComponentVariant>(() => {
   const variants: Record<BleStatus, MudaComponentVariant> = {
     idle: "secondary",
@@ -35,45 +62,23 @@ const statusVariant = computed<MudaComponentVariant>(() => {
   return variants[status.value];
 });
 
-async function refresh(): Promise<void> {
-  if (refreshing) return;
-  refreshing = true;
-  try {
-    const [statusResponse, measurementsResponse] = await Promise.all([
-      fetch("/api/status"),
-      fetch("/api/measurements?limit=50"),
-    ]);
-    if (!statusResponse.ok || !measurementsResponse.ok) {
-      throw new Error("The local server returned an error");
-    }
-
-    snapshot.value = (await statusResponse.json()) as StatusResponse;
-    const payload = (await measurementsResponse.json()) as { measurements: MeasurementResponse[] };
-    measurements.value = payload.measurements;
-    refreshError.value = null;
-  } catch (error) {
-    refreshError.value = error;
-  } finally {
-    loading.value = false;
-    refreshing = false;
-  }
-}
-
-onMounted(() => {
-  void refresh();
-  refreshTimer = window.setInterval(() => void refresh(), 3_000);
-});
-
-onUnmounted(() => window.clearInterval(refreshTimer));
+onMounted(() => void startPolling());
 </script>
 
 <template>
   <main class="mx-auto h-full w-full max-w-6xl p-6">
     <AppHeader :status="status" :status-variant="statusVariant" />
 
-    <MudaErrorBox v-if="refreshError && !snapshot" title="Server unreachable" :error="refreshError" />
+    <MudaErrorBox
+      v-if="state.status === 'failure' && !state.prevResult"
+      title="Server unreachable"
+      :error="state.error"
+    />
 
-    <div v-else-if="loading" class="grid min-h-[50vh] place-items-center">
+    <div
+      v-else-if="state.status === 'idle' || (state.status === 'loading' && !state.prevResult)"
+      class="grid min-h-[50vh] place-items-center"
+    >
       <MudaSpinner size="large" label="Loading scale data" />
     </div>
 
@@ -84,10 +89,23 @@ onUnmounted(() => window.clearInterval(refreshTimer));
           :live-weight="liveWeight"
           :measured-at="currentMeasurement?.measured_at"
         />
-        <BluetoothStatusCard :bluetooth="snapshot?.bluetooth" :server-time="snapshot?.server_time" />
+        <BluetoothStatusCard
+          :bluetooth="
+            state.status === 'success'
+              ? state.result.snapshot.bluetooth
+              : (state.prevResult?.snapshot.bluetooth ?? null)
+          "
+          :server-time="
+            state.status === 'success'
+              ? state.result.snapshot.server_time
+              : (state.prevResult?.snapshot.server_time ?? null)
+          "
+        />
       </section>
 
-      <MeasurementHistoryCard :measurements="measurements" />
+      <MeasurementHistoryCard
+        :measurements="state.status === 'success' ? state.result.measurements : (state.prevResult?.measurements ?? [])"
+      />
     </template>
   </main>
 </template>

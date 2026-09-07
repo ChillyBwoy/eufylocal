@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy.exc import StatementError
 
-from eufylocal.db import Database, Measurement, MeasurementRepository
+from eufylocal.db import Database, MeasurementModel, MeasurementRepository
 from eufylocal.db.migration import upgrade_database
 
 
@@ -17,8 +17,8 @@ def _measurement(
     weight_kg: float = 80.5,
     impedance_ohm: float | None = 420.0,
     source: str = "advertisement",
-) -> Measurement:
-    return Measurement(
+) -> MeasurementModel:
+    return MeasurementModel(
         measured_at=datetime.now(UTC),
         weight_kg=weight_kg,
         impedance_ohm=impedance_ohm,
