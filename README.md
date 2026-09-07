@@ -26,8 +26,10 @@ or third-party services.
 Using uv:
 
 ```bash
-uv sync
+make install
 ```
+
+This installs both the Python dependencies with `uv` and the frontend dependencies with `npm`.
 
 Using a virtual environment:
 
@@ -59,6 +61,23 @@ make run
 
 The server listens on `127.0.0.1:8000` by default. Open
 <http://127.0.0.1:8000> in a browser.
+
+For frontend development, run both Vite and the API server:
+
+```bash
+make dev
+```
+
+Open <http://127.0.0.1:5137>. Vite proxies `/api` requests to the FastAPI server on port `8000`.
+The backend continues to serve the last production frontend build at port `8000`.
+
+Build the production Vue application and Python distributions with:
+
+```bash
+make build
+```
+
+The Vite output is written to `eufylocal/static/` and packaged into the Python wheel.
 
 To access the interface from a phone on the local network:
 
@@ -193,3 +212,5 @@ scale's MAC address is also embedded in manufacturer data and is logged for diag
 * `eufylocal/db/migrations/` contains the Alembic environment and revisions.
 * `eufylocal/ble_collector.py` contains the advertising and GATT collector.
 * `eufylocal/parser.py` decodes T9146 frames.
+* `frontend/` contains the Vue 3 and Vite frontend source.
+* `eufylocal/static/` contains the generated production frontend served by FastAPI.

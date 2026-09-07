@@ -9,7 +9,6 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from eufylocal.ble_collector import BLECollector, scan_and_print
@@ -64,12 +63,7 @@ app.include_router(info_router)
 app.include_router(measurements_router)
 
 
-@app.get("/", include_in_schema=False, response_class=FileResponse)
-async def index() -> FileResponse:
-    return FileResponse(STATIC_DIR / "index.html")
-
-
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="frontend")
 
 
 def _parser() -> argparse.ArgumentParser:

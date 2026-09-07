@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
@@ -95,13 +96,14 @@ def test_index_served(tmp_path, monkeypatch) -> None:
 def test_static_assets_are_served(tmp_path, monkeypatch) -> None:
     client = _build_client(tmp_path, monkeypatch)
     with client:
-        javascript = client.get("/static/app.js")
-        stylesheet = client.get("/static/style.css")
+        index = client.get("/")
+        asset_paths = re.findall(r'(?:src|href)="(/assets/[^"]+)"', index.text)
+        assets = [client.get(path) for path in asset_paths]
 
-        assert javascript.status_code == 200
-        assert "setInterval(refresh" in javascript.text
-        assert stylesheet.status_code == 200
-        assert "text/css" in stylesheet.headers["content-type"]
+        assert len(assets) == 2
+        assert all(asset.status_code == 200 for asset in assets)
+        assert any("/api/status" in asset.text for asset in assets)
+        assert any("text/css" in asset.headers["content-type"] for asset in assets)
 
 
 def test_api_routes_have_response_schemas(tmp_path, monkeypatch) -> None:
