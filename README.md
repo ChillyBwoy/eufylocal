@@ -12,7 +12,7 @@ or third-party services.
 * Reads weight and, when available, impedance from advertising packets without connecting,
   or through GATT (`0xFFF0` with notifications on `0xFFF4`).
 * Stores the UTC timestamp, weight in kilograms, impedance, device identifier, data source,
-  and raw hexadecimal payload in SQLite.
+  and raw hexadecimal payload in SQLite through the SQLAlchemy 2.x async engine.
 * Provides a local web interface and HTTP API.
 * Never sends the history-clear command (`F2 01`) or writes any other data to the scale.
 
@@ -105,6 +105,7 @@ Environment variables take precedence over values in `.env`.
 ```dotenv
 EUFYLOCAL_DEVICE_IDENTIFIER=AAAA1111-...
 EUFYLOCAL_TRANSPORT=advertisement
+EUFYLOCAL_AUTO_MIGRATE=true
 EUFYLOCAL_HOST=127.0.0.1
 EUFYLOCAL_PORT=8000
 EUFYLOCAL_DATABASE_PATH=eufylocal.db
@@ -113,6 +114,22 @@ EUFYLOCAL_LOG_LEVEL=INFO
 
 Supported transports are `advertisement`, `gatt`, and `both`. Advertising is the recommended
 default because T9146 broadcasts measurements without requiring a connection.
+
+## Database Migrations
+
+Alembic migrations are applied automatically at startup when `EUFYLOCAL_AUTO_MIGRATE=true`,
+which is the default. They can also be managed explicitly:
+
+```bash
+make db-upgrade
+make db-current
+make db-downgrade
+make db-revision MESSAGE="add a column"
+```
+
+All SQLAlchemy and Alembic files are contained in `eufylocal/db/`. The initial migration creates
+the `measurements` table. If upgrading from the earlier development version that created this
+table without Alembic, remove the test database once before starting the new version.
 
 ## HTTP API
 
@@ -168,7 +185,11 @@ scale's MAC address is also embedded in manufacturer data and is logged for diag
 
 * `eufylocal/main.py` contains the FastAPI app, lifecycle, CLI, and frontend routes.
 * `eufylocal/routes/` contains the status and measurement API routes.
-* `eufylocal/schemas.py` contains the Pydantic response schemas.
-* `eufylocal/db/` contains the SQLite connection, schema, and measurement repository.
+* `eufylocal/schemas.py` contains the Pydantic response schemas and Bluetooth status enum.
+* `eufylocal/di.py` provides FastAPI dependencies for request-scoped async sessions and repositories.
+* `eufylocal/db/models.py` contains the SQLAlchemy models.
+* `eufylocal/db/session.py` owns the SQLAlchemy async engine and sessions.
+* `eufylocal/db/measurements.py` contains the measurement repository.
+* `eufylocal/db/migrations/` contains the Alembic environment and revisions.
 * `eufylocal/ble_collector.py` contains the advertising and GATT collector.
 * `eufylocal/parser.py` decodes T9146 frames.

@@ -11,6 +11,7 @@ def test_settings_load_dotenv(tmp_path) -> None:
                 "EUFYLOCAL_HOST=0.0.0.0",
                 "EUFYLOCAL_PORT=9000",
                 "EUFYLOCAL_BLE_ENABLED=false",
+                "EUFYLOCAL_AUTO_MIGRATE=false",
             )
         ),
         encoding="utf-8",
@@ -23,3 +24,4 @@ def test_settings_load_dotenv(tmp_path) -> None:
     assert settings.host == "0.0.0.0"
     assert settings.port == 9000
     assert settings.ble_enabled is False
+    assert settings.auto_migrate is False

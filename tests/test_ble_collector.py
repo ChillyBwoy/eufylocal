@@ -6,12 +6,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 import eufylocal.ble_collector as ble_module
 import eufylocal.state as state_module
 from eufylocal.ble_collector import BLECollector, scan_and_print
 from eufylocal.config import Settings
-from eufylocal.db import Database, MeasurementRepository
-from eufylocal.models import Measurement
+from eufylocal.db import Database, Measurement, MeasurementRepository
+from eufylocal.db.migration import upgrade_database
+from eufylocal.parser import extract_frame_from_manufacturer_data
 from eufylocal.state import AppState
 
 
@@ -28,8 +31,7 @@ def _settings(**values: object) -> Settings:
 
 
 def _collector(settings: Settings) -> BLECollector:
-    repository = MeasurementRepository(Database(Path(":memory:")))
-    return BLECollector(settings, repository, AppState())
+    return BLECollector(settings, Database(Path(":memory:")), AppState())
 
 
 def test_configured_identifier_rejects_other_named_scale() -> None:
@@ -63,7 +65,7 @@ def test_live_weight_is_active_only_before_final_measurement() -> None:
     )
     snapshot = state.snapshot()
     assert snapshot["bluetooth"]["live_weight_active"] is False
-    assert snapshot["last_measurement"]["weight_kg"] == 75.2
+    assert snapshot["last_measurement"].weight_kg == 75.2
 
 
 def test_live_weight_expires(monkeypatch) -> None:
@@ -77,6 +79,29 @@ def test_live_weight_expires(monkeypatch) -> None:
 
     assert snapshot["bluetooth"]["live_weight_active"] is False
     assert snapshot["bluetooth"]["live_weight_kg"] is None
+
+
+@pytest.mark.asyncio
+async def test_final_frame_is_persisted_async(tmp_path) -> None:
+    database_path = tmp_path / "collector.db"
+    upgrade_database(database_path)
+    database = Database(database_path)
+    state = AppState()
+    collector = BLECollector(_settings(), database, state)
+    frame = extract_frame_from_manufacturer_data(
+        bytes.fromhex("cfe50c0301eccf2413122560655a0100914a9146")
+    )
+    assert frame is not None
+
+    collector._schedule_frame(_device(), frame, "advertisement")
+    await collector._drain_callback_tasks()
+
+    async with database.session() as session:
+        latest = await MeasurementRepository(session).latest()
+    await database.close()
+    assert latest is not None
+    assert latest.weight_kg == 94.9
+    assert state.snapshot()["last_measurement"].weight_kg == 94.9
 
 
 def test_gatt_listener_returns_after_disconnect(monkeypatch) -> None:
@@ -98,8 +123,7 @@ def test_gatt_listener_returns_after_disconnect(monkeypatch) -> None:
 
     monkeypatch.setattr(ble_module, "BleakClient", FakeClient)
     state = AppState()
-    repository = MeasurementRepository(Database(Path(":memory:")))
-    collector = BLECollector(_settings(), repository, state)
+    collector = BLECollector(_settings(), Database(Path(":memory:")), state)
 
     asyncio.run(collector._connect_and_listen(_device()))
 

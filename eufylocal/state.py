@@ -4,7 +4,8 @@ import threading
 import time
 from datetime import UTC, datetime
 
-from eufylocal.models import BLEStatus, Measurement
+from eufylocal.db.models import Measurement
+from eufylocal.schemas import BLEStatus
 
 LIVE_WEIGHT_TTL_SECONDS = 10.0
 
@@ -75,8 +76,6 @@ class AppState:
                     "live_weight_kg": self._live_weight_kg,
                     "live_weight_active": self._live_weight_active,
                 },
-                "last_measurement": (
-                    self._last_measurement.to_dict() if self._last_measurement else None
-                ),
+                "last_measurement": self._last_measurement,
                 "server_time": datetime.now(UTC).isoformat(),
             }

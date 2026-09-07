@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 
-from eufylocal.db import Database, MeasurementRepository
+from eufylocal.db import Database, Measurement, MeasurementRepository
+from eufylocal.db.migration import upgrade_database
 from eufylocal.main import app, settings
-from eufylocal.models import Measurement
 
 
 def _build_client(tmp_path, monkeypatch) -> TestClient:
@@ -43,9 +44,9 @@ def test_measurements_empty_list(tmp_path, monkeypatch) -> None:
 
 
 def test_measurements_and_latest(tmp_path, monkeypatch) -> None:
-    database = Database(tmp_path / "api.db")
-    database.initialize()
-    repository = MeasurementRepository(database)
+    database_path = tmp_path / "api.db"
+    upgrade_database(database_path)
+    database = Database(database_path)
     measurement = Measurement(
         measured_at=datetime.now(UTC),
         weight_kg=77.7,
@@ -54,7 +55,13 @@ def test_measurements_and_latest(tmp_path, monkeypatch) -> None:
         source="advertisement",
         raw_payload_hex="cf00000000000000000000",
     )
-    repository.insert(measurement)
+
+    async def insert_measurement() -> None:
+        async with database.session() as session:
+            await MeasurementRepository(session).insert(measurement)
+        await database.close()
+
+    asyncio.run(insert_measurement())
 
     client = _build_client(tmp_path, monkeypatch)
     with client:

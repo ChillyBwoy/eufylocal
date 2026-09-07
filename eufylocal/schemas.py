@@ -1,9 +1,16 @@
 from datetime import datetime
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from eufylocal.models import BLEStatus
+
+class BLEStatus(StrEnum):
+    IDLE = "idle"
+    SCANNING = "scanning"
+    CONNECTING = "connecting"
+    CONNECTED = "connected"
+    ERROR = "error"
 
 
 class MeasurementResponse(BaseModel):

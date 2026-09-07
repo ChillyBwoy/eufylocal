@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     scan_timeout: float = Field(default=5.0, gt=0)
     continuous_scan: bool = True
     ble_enabled: bool = True
+    auto_migrate: bool = True
     host: str = "127.0.0.1"
     port: int = Field(default=8000, ge=1, le=65535)
     database_path: Path = Path("eufylocal.db")

@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from eufylocal.ble_collector import BLECollector, scan_and_print
 from eufylocal.config import Settings
 from eufylocal.db import Database, MeasurementRepository
+from eufylocal.db.migration import upgrade_database
 from eufylocal.routes.info import router as info_router
 from eufylocal.routes.measurements import router as measurements_router
 from eufylocal.state import AppState
@@ -32,26 +33,30 @@ def _configure_logging(level: str) -> None:
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+    if settings.auto_migrate:
+        await asyncio.to_thread(upgrade_database, settings.database_path)
     database = Database(settings.database_path)
-    database.initialize()
-    measurements = MeasurementRepository(database)
-    runtime = AppState()
-    if latest := measurements.latest():
-        runtime.set_last_measurement(latest)
-
-    application.state.measurements = measurements
-    application.state.runtime = runtime
-
-    collector = BLECollector(settings, measurements, runtime)
-    collector_task = asyncio.create_task(collector.run()) if settings.ble_enabled else None
-    application.state.collector = collector
+    collector: BLECollector | None = None
+    collector_task: asyncio.Task[None] | None = None
     try:
+        runtime = AppState()
+        async with database.session() as session:
+            if latest := await MeasurementRepository(session).latest():
+                runtime.set_last_measurement(latest)
+
+        application.state.database = database
+        application.state.runtime = runtime
+
+        collector = BLECollector(settings, database, runtime)
+        collector_task = asyncio.create_task(collector.run()) if settings.ble_enabled else None
+        application.state.collector = collector
         yield
     finally:
-        if collector_task is not None:
+        if collector is not None and collector_task is not None:
             await collector.stop()
             collector_task.cancel()
             await asyncio.gather(collector_task, return_exceptions=True)
+        await database.close()
 
 
 app = FastAPI(title="eufylocal", lifespan=lifespan)

@@ -10,9 +10,9 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
 from eufylocal.config import Settings
-from eufylocal.db import MeasurementRepository
-from eufylocal.models import BLEStatus, Measurement
+from eufylocal.db import Database, Measurement, MeasurementRepository
 from eufylocal.parser import extract_frame_from_manufacturer_data, parse_frame
+from eufylocal.schemas import BLEStatus
 from eufylocal.state import AppState
 
 logger = logging.getLogger(__name__)
@@ -28,16 +28,18 @@ class BLECollector:
     def __init__(
         self,
         settings: Settings,
-        measurements: MeasurementRepository,
+        database: Database,
         state: AppState,
     ) -> None:
         self._settings = settings
-        self._measurements = measurements
+        self._database = database
         self._state = state
         self._stop_event = asyncio.Event()
         self._client: BleakClient | None = None
         self._last_persisted_at: datetime | None = None
         self._last_persisted_key: tuple[float, float | None] | None = None
+        self._persist_lock = asyncio.Lock()
+        self._callback_tasks: set[asyncio.Task[None]] = set()
 
     async def run(self) -> None:
         logger.info("starting BLE collector (transport=%s)", self._settings.transport)
@@ -61,6 +63,7 @@ class BLECollector:
             self._state.set_error(str(exc))
         finally:
             await self._disconnect()
+            await self._drain_callback_tasks()
             if not failed:
                 self._state.set_status(BLEStatus.IDLE)
 
@@ -85,7 +88,11 @@ class BLECollector:
             await scanner.stop()
             logger.info("BLE scan stopped")
 
-    def _on_advertisement(self, device: BLEDevice, advertisement: AdvertisementData) -> None:
+    def _on_advertisement(
+        self,
+        device: BLEDevice,
+        advertisement: AdvertisementData,
+    ) -> None:
         name = device.name or advertisement.local_name or ""
         logger.debug(
             "advertisement: address=%s name=%r rssi=%s manufacturer=%s",
@@ -109,7 +116,7 @@ class BLECollector:
                 device.address,
                 frame.hex(),
             )
-            self._handle_frame(device, frame, "advertisement")
+            self._schedule_frame(device, frame, "advertisement")
 
     async def _run_gatt(self) -> None:
         while not self._stop_event.is_set():
@@ -203,9 +210,35 @@ class BLECollector:
     ) -> None:
         logger.info("GATT notification: %s", data.hex())
         device_id = self._client.address if self._client else ""
-        self._handle_frame(self._client, data, "gatt", device_id)
+        self._schedule_frame(self._client, data, "gatt", device_id)
 
-    def _handle_frame(
+    def _schedule_frame(
+        self,
+        device: BLEDevice | BleakClient | None,
+        frame: bytes | bytearray,
+        source: str,
+        device_id_override: str | None = None,
+    ) -> None:
+        task = asyncio.create_task(self._handle_frame(device, frame, source, device_id_override))
+        self._callback_tasks.add(task)
+        task.add_done_callback(self._callback_finished)
+
+    def _callback_finished(self, task: asyncio.Task[None]) -> None:
+        self._callback_tasks.discard(task)
+        if task.cancelled():
+            return
+        if error := task.exception():
+            logger.error(
+                "measurement callback failed",
+                exc_info=(type(error), error, error.__traceback__),
+            )
+            self._state.set_error(str(error))
+
+    async def _drain_callback_tasks(self) -> None:
+        if self._callback_tasks:
+            await asyncio.gather(*tuple(self._callback_tasks), return_exceptions=True)
+
+    async def _handle_frame(
         self,
         device: BLEDevice | BleakClient | None,
         frame: bytes | bytearray,
@@ -247,14 +280,16 @@ class BLECollector:
             raw_payload_hex=bytes(frame).hex(),
         )
 
-        if self._is_duplicate(measurement):
-            logger.debug("duplicate final measurement skipped")
-            return
+        async with self._persist_lock:
+            if self._is_duplicate(measurement):
+                logger.debug("duplicate final measurement skipped")
+                return
 
-        self._measurements.insert(measurement)
-        self._state.set_last_measurement(measurement)
-        self._last_persisted_at = measurement.measured_at
-        self._last_persisted_key = (measurement.weight_kg, measurement.impedance_ohm)
+            async with self._database.session() as session:
+                await MeasurementRepository(session).insert(measurement)
+            self._state.set_last_measurement(measurement)
+            self._last_persisted_at = measurement.measured_at
+            self._last_persisted_key = (measurement.weight_kg, measurement.impedance_ohm)
         logger.info(
             "stored measurement: weight=%.2f kg impedance=%s source=%s",
             measurement.weight_kg,
