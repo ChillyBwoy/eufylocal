@@ -12,3 +12,8 @@ wheels/
 # Misc
 .DS_Store
 
+# Local data and config
+.env
+*.db
+*.db-wal
+*.db-shm
