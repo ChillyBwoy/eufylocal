@@ -9,6 +9,7 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 
 from eufylocal.ble_collector import BLECollector, scan_and_print
@@ -21,6 +22,10 @@ from eufylocal.state import AppState
 
 STATIC_DIR = Path(__file__).parent / "static"
 settings = Settings()
+
+
+def custom_generate_unique_id(route: APIRoute):
+    return f"{route.tags[0]}-{route.name}"
 
 
 def _configure_logging(level: str) -> None:
@@ -58,7 +63,11 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         await database.close()
 
 
-app = FastAPI(title="eufylocal", lifespan=lifespan)
+app = FastAPI(
+    title="eufylocal",
+    lifespan=lifespan,
+    generate_unique_id_function=custom_generate_unique_id,
+)
 app.include_router(info_router)
 app.include_router(measurements_router)
 

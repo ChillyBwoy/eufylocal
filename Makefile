@@ -27,6 +27,7 @@ Usage:
 	make typecheck     Run Pyright
 	make check         Run all quality checks and tests
 	make build         Build wheel and source distribution
+	make openapi       regenerate OpenAPI schema
 
 endef
 export header
@@ -90,6 +91,10 @@ typecheck:
 
 .PHONY: check
 check: lint format-check typecheck test
+
+.PHONY: openapi
+openapi:
+	$(UV) run python eufylocal/scripts/openapi.py --app eufylocal.main:app
 
 .PHONY: build
 build:
