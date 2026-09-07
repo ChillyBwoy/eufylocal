@@ -7,7 +7,7 @@ router = APIRouter(prefix="/api/measurements", tags=["measurements"])
 
 
 @router.get(
-    "/",
+    "",
     response_model=MeasurementsResponse,
     operation_id="get_measurements",
 )

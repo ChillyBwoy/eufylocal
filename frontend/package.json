@@ -14,7 +14,7 @@
     "openapi": "openapi-ts"
   },
   "dependencies": {
-    "@mudakit/ui": "^0.1.0",
+    "@mudakit/ui": "^0.3.0",
     "vue": "^3.5.41"
   },
   "devDependencies": {
