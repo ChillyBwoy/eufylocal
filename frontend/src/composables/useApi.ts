@@ -34,11 +34,18 @@ export function useApi<T = unknown, A extends unknown[] = [], E = unknown>(
     const requestId = lastRequestId.value + 1;
     lastRequestId.value = requestId;
 
-    const response = await func(...args);
-    if (requestId === lastRequestId.value) {
-      state.value = { status: "success", result: response.data };
+    try {
+      const response = await func(...args);
+      if (requestId === lastRequestId.value) {
+        state.value = { status: "success", result: response.data };
+      }
+      return response;
+    } catch (error) {
+      if (requestId === lastRequestId.value) {
+        state.value = { status: "failure", error: error as E };
+      }
+      throw error;
     }
-    return response;
   };
 
   return [handler, state, reset];
