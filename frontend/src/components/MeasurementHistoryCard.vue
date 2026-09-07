@@ -15,7 +15,7 @@ defineProps<{
   <MudaCard>
     <div class="mb-5 flex items-end justify-between gap-4">
       <div>
-        <p class="section-label mb-2">History</p>
+        <p class="text-muda-secondary mb-2 font-mono text-xs tracking-[0.22em] uppercase">History</p>
         <h2 class="font-semibold">Recent measurements</h2>
       </div>
       <span class="text-muda-secondary font-mono text-xs">{{ measurements.length }} records</span>

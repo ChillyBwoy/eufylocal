@@ -13,19 +13,19 @@ defineProps<{
 <template>
   <MudaCard>
     <div class="flex h-full flex-col">
-      <p class="section-label mb-7">Bluetooth link</p>
-      <dl class="info-list">
-        <div>
-          <dt>Device</dt>
-          <dd>{{ bluetooth?.device_name ?? "Not discovered" }}</dd>
+      <p class="text-muda-secondary mb-7 font-mono text-xs tracking-[0.22em] uppercase">Bluetooth link</p>
+      <dl class="grid gap-5">
+        <div class="border-muda-secondary-light border-b pb-4 last:border-0">
+          <dt class="text-muda-secondary mb-1 text-xs tracking-wider uppercase">Device</dt>
+          <dd class="m-0 font-medium break-all">{{ bluetooth?.device_name ?? "Not discovered" }}</dd>
         </div>
-        <div>
-          <dt>Identifier</dt>
-          <dd class="font-mono text-xs">{{ bluetooth?.device_id ?? "--" }}</dd>
+        <div class="border-muda-secondary-light border-b pb-4 last:border-0">
+          <dt class="text-muda-secondary mb-1 text-xs tracking-wider uppercase">Identifier</dt>
+          <dd class="m-0 font-mono font-medium text-xs break-all">{{ bluetooth?.device_id ?? "--" }}</dd>
         </div>
-        <div>
-          <dt>Last sync</dt>
-          <dd>{{ formatTime(serverTime) }}</dd>
+        <div class="border-muda-secondary-light border-b pb-4 last:border-0">
+          <dt class="text-muda-secondary mb-1 text-xs tracking-wider uppercase">Last sync</dt>
+          <dd class="m-0 font-medium break-all">{{ formatTime(serverTime) }}</dd>
         </div>
       </dl>
       <p v-if="bluetooth?.last_error" class="text-muda-danger mt-auto pt-6 text-sm">
