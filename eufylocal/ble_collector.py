@@ -10,7 +10,7 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
 from eufylocal.config import Settings
-from eufylocal.db import Database, Measurement, MeasurementRepository
+from eufylocal.db import Database, MeasurementModel, MeasurementRepository
 from eufylocal.parser import extract_frame_from_manufacturer_data, parse_frame
 from eufylocal.schemas import BLEStatus
 from eufylocal.state import AppState
@@ -272,7 +272,7 @@ class BLECollector:
         device_id = device_id_override or (
             getattr(device, "address", "") or self._settings.device_identifier or "unknown"
         )
-        measurement = Measurement.now(
+        measurement = MeasurementModel.now(
             weight_kg=parsed.weight_kg,
             impedance_ohm=parsed.impedance_ohm,
             device_id=device_id,
@@ -297,7 +297,7 @@ class BLECollector:
             source,
         )
 
-    def _is_duplicate(self, measurement: Measurement) -> bool:
+    def _is_duplicate(self, measurement: MeasurementModel) -> bool:
         if self._last_persisted_at is None or self._last_persisted_key is None:
             return False
         key = (measurement.weight_kg, measurement.impedance_ohm)

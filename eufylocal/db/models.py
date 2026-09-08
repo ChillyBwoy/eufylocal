@@ -25,11 +25,11 @@ class UTCDateTime(TypeDecorator[datetime]):
         return datetime.fromisoformat(value).astimezone(UTC)
 
 
-class Base(DeclarativeBase):
+class BaseModel(DeclarativeBase):
     pass
 
 
-class Measurement(Base):
+class MeasurementModel(BaseModel):
     __tablename__ = "measurements"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -53,7 +53,7 @@ class Measurement(Base):
         device_id: str,
         source: str,
         raw_payload_hex: str,
-    ) -> Measurement:
+    ) -> MeasurementModel:
         return cls(
             measured_at=datetime.now(UTC),
             weight_kg=round(weight_kg, 2),

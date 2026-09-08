@@ -4,7 +4,7 @@ import threading
 import time
 from datetime import UTC, datetime
 
-from eufylocal.db.models import Measurement
+from eufylocal.db.models import MeasurementModel
 from eufylocal.schemas import BLEStatus
 
 LIVE_WEIGHT_TTL_SECONDS = 10.0
@@ -20,7 +20,7 @@ class AppState:
         self._live_weight_kg: float | None = None
         self._live_weight_active = False
         self._live_weight_updated_at: float | None = None
-        self._last_measurement: Measurement | None = None
+        self._last_measurement: MeasurementModel | None = None
 
     def set_status(self, status: BLEStatus) -> None:
         with self._lock:
@@ -50,7 +50,7 @@ class AppState:
             self._live_weight_active = False
             self._live_weight_updated_at = None
 
-    def set_last_measurement(self, measurement: Measurement) -> None:
+    def set_last_measurement(self, measurement: MeasurementModel) -> None:
         with self._lock:
             self._last_measurement = measurement
             self._live_weight_kg = measurement.weight_kg

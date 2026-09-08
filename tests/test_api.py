@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 
-from eufylocal.db import Database, Measurement, MeasurementRepository
+from eufylocal.db import Database, MeasurementModel, MeasurementRepository
 from eufylocal.db.migration import upgrade_database
 from eufylocal.main import app, settings
 
@@ -40,14 +41,14 @@ def test_measurements_empty_list(tmp_path, monkeypatch) -> None:
     with client:
         response = client.get("/api/measurements")
         assert response.status_code == 200
-        assert response.json() == {"measurements": []}
+        assert response.json() == []
 
 
 def test_measurements_and_latest(tmp_path, monkeypatch) -> None:
     database_path = tmp_path / "api.db"
     upgrade_database(database_path)
     database = Database(database_path)
-    measurement = Measurement(
+    measurement = MeasurementModel(
         measured_at=datetime.now(UTC),
         weight_kg=77.7,
         impedance_ohm=None,
@@ -73,8 +74,8 @@ def test_measurements_and_latest(tmp_path, monkeypatch) -> None:
         assert latest["impedance_ohm"] is None
 
         listed = client.get("/api/measurements").json()
-        assert len(listed["measurements"]) == 1
-        assert listed["measurements"][0]["raw_payload_hex"] == "cf00000000000000000000"
+        assert len(listed) == 1
+        assert listed[0]["raw_payload_hex"] == "cf00000000000000000000"
 
 
 def test_measurements_limit_validation(tmp_path, monkeypatch) -> None:
@@ -95,13 +96,14 @@ def test_index_served(tmp_path, monkeypatch) -> None:
 def test_static_assets_are_served(tmp_path, monkeypatch) -> None:
     client = _build_client(tmp_path, monkeypatch)
     with client:
-        javascript = client.get("/static/app.js")
-        stylesheet = client.get("/static/style.css")
+        index = client.get("/")
+        asset_paths = re.findall(r'(?:src|href)="(/assets/[^"]+)"', index.text)
+        assets = [client.get(path) for path in asset_paths]
 
-        assert javascript.status_code == 200
-        assert "setInterval(refresh" in javascript.text
-        assert stylesheet.status_code == 200
-        assert "text/css" in stylesheet.headers["content-type"]
+        assert len(assets) == 2
+        assert all(asset.status_code == 200 for asset in assets)
+        assert any("/api/status" in asset.text for asset in assets)
+        assert any("text/css" in asset.headers["content-type"] for asset in assets)
 
 
 def test_api_routes_have_response_schemas(tmp_path, monkeypatch) -> None:

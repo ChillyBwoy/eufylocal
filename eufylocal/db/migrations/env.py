@@ -7,10 +7,10 @@ from sqlalchemy import URL, create_engine
 from sqlalchemy.pool import NullPool
 
 from eufylocal.config import Settings
-from eufylocal.db.models import Base
+from eufylocal.db.models import BaseModel
 
 config = context.config
-target_metadata = Base.metadata
+target_metadata = BaseModel.metadata
 
 
 def _database_path() -> Path:
