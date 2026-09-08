@@ -25,6 +25,6 @@ async def status(
         bluetooth = bluetooth.model_copy(update={"last_received_at": latest.measured_at})
     return Status(
         bluetooth=bluetooth,
-        last_measurement=Measurement.model_validate(latest) if latest is not None else None,
+        last_measurement=(Measurement.model_validate(latest) if latest is not None else None),
         server_time=datetime.now(UTC),
     )

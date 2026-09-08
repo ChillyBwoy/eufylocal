@@ -17,13 +17,13 @@ class MeasurementRepository:
             raise
 
     async def list(self, limit: int = 50) -> list[MeasurementModel]:
-        statement = (
+        stmt = (
             select(MeasurementModel)
             .order_by(MeasurementModel.measured_at.desc(), MeasurementModel.id.desc())
             .limit(limit)
         )
-        return list(await self.session.scalars(statement))
+        return list(await self.session.scalars(stmt))
 
     async def latest(self) -> MeasurementModel | None:
-        statement = select(MeasurementModel).order_by(MeasurementModel.id.desc()).limit(1)
-        return await self.session.scalar(statement)
+        stmt = select(MeasurementModel).order_by(MeasurementModel.id.desc()).limit(1)
+        return await self.session.scalar(stmt)
