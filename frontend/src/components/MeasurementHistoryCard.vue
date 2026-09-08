@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { MudaCard } from "@mudakit/ui/MudaCard";
 import { MudaTable, MudaTableCell, MudaTableHead, MudaTableRow } from "@mudakit/ui/MudaTable";
-import { MudaTag } from "@mudakit/ui/MudaTag";
 
 import { type Measurement } from "@/api";
 import { formatTime } from "@/utils/format";
@@ -28,8 +27,6 @@ defineProps<{
             <MudaTableHead>Local time</MudaTableHead>
             <MudaTableHead>Weight</MudaTableHead>
             <MudaTableHead>Impedance</MudaTableHead>
-            <MudaTableHead>Source</MudaTableHead>
-            <MudaTableHead>Device</MudaTableHead>
           </MudaTableRow>
         </template>
         <template #body>
@@ -41,10 +38,6 @@ defineProps<{
             <MudaTableCell class="font-mono tabular-nums">
               {{ measurement.impedance_ohm === null ? "--" : `${measurement.impedance_ohm.toFixed(1)} Ω` }}
             </MudaTableCell>
-            <MudaTableCell>
-              <MudaTag size="small" variant="default">{{ measurement.source }}</MudaTag>
-            </MudaTableCell>
-            <MudaTableCell class="max-w-56 truncate font-mono text-xs">{{ measurement.device_id }}</MudaTableCell>
           </MudaTableRow>
         </template>
       </MudaTable>
