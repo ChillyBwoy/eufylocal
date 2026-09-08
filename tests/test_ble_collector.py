@@ -3,17 +3,13 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import UTC, datetime
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 import eufylocal.ble_collector as ble_module
-import eufylocal.state as state_module
 from eufylocal.ble_collector import BLECollector, scan_and_print
 from eufylocal.config import Settings
-from eufylocal.db import Database, MeasurementModel, MeasurementRepository
-from eufylocal.db.migration import upgrade_database
 from eufylocal.parser import extract_frame_from_manufacturer_data
 from eufylocal.state import AppState
 
@@ -30,8 +26,12 @@ def _settings(**values: object) -> Settings:
     return Settings(_env_file=None, **values)
 
 
-def _collector(settings: Settings) -> BLECollector:
-    return BLECollector(settings, Database(Path(":memory:")), AppState())
+async def _ignore_frame(**_kwargs) -> None:
+    pass
+
+
+def _collector(settings: Settings, state: AppState | None = None) -> BLECollector:
+    return BLECollector(settings, state or AppState(), _ignore_frame)
 
 
 def test_configured_identifier_rejects_other_named_scale() -> None:
@@ -48,60 +48,122 @@ def test_name_is_used_when_identifier_is_not_configured() -> None:
     assert collector._matches(_device(name="other"), _advertisement("other")) is False
 
 
-def test_live_weight_is_active_only_before_final_measurement() -> None:
-    state = AppState()
-    state.set_live_weight(75.1)
-    assert state.snapshot()["bluetooth"]["live_weight_active"] is True
+def test_matching_advertisement_logs_all_data(caplog) -> None:
+    collector = _collector(_settings())
+    device = _device()
+    advertisement = _advertisement()
 
-    state.set_last_measurement(
-        MeasurementModel(
-            measured_at=datetime.now(UTC),
-            weight_kg=75.2,
-            impedance_ohm=None,
-            device_id="DEVICE-1",
-            source="advertisement",
-            raw_payload_hex="cf",
-        )
-    )
-    snapshot = state.snapshot()
-    assert snapshot["bluetooth"]["live_weight_active"] is False
-    assert snapshot["last_measurement"].weight_kg == 75.2
+    with caplog.at_level(logging.INFO):
+        collector._on_advertisement(device, advertisement)
 
-
-def test_live_weight_expires(monkeypatch) -> None:
-    current_time = 100.0
-    monkeypatch.setattr(state_module.time, "monotonic", lambda: current_time)
-    state = AppState()
-    state.set_live_weight(75.1)
-
-    current_time += 11.0
-    snapshot = state.snapshot()
-
-    assert snapshot["bluetooth"]["live_weight_active"] is False
-    assert snapshot["bluetooth"]["live_weight_kg"] is None
+    assert "scale advertisement" in caplog.text
+    assert "DEVICE-1" in caplog.text
+    assert "manufacturer_data={1: b'payload'}" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_final_frame_is_persisted_async(tmp_path) -> None:
-    database_path = tmp_path / "collector.db"
-    upgrade_database(database_path)
-    database = Database(database_path)
+async def test_gatt_notification_logs_sender_and_raw_data(caplog) -> None:
+    collector = _collector(_settings())
+    sender = SimpleNamespace(uuid="fff4", handle=4)
+
+    with caplog.at_level(logging.INFO):
+        collector._on_gatt_notification(sender, bytearray.fromhex("0102ff"))
+        await collector._drain_callback_tasks()
+
+    assert "scale GATT notification" in caplog.text
+    assert "uuid='fff4'" in caplog.text
+    assert "data=0102ff" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_scheduled_frame_passes_normalized_arguments(monkeypatch) -> None:
+    received_at = datetime(2026, 9, 8, 10, 30, tzinfo=UTC)
+
+    class FakeDateTime:
+        @classmethod
+        def now(cls, timezone):
+            assert timezone is UTC
+            return received_at
+
+    monkeypatch.setattr(ble_module, "datetime", FakeDateTime)
+    captured: list[dict] = []
+
+    async def capture(**kwargs) -> None:
+        captured.append(kwargs)
+
+    collector = BLECollector(_settings(), AppState(), capture)
+    mutable = bytearray.fromhex("cfe50c0301eccf2413122560655a010091")
+
+    collector._schedule_frame(_device(), mutable, "advertisement")
+    mutable[0] = 0x00
+    await collector._drain_callback_tasks()
+
+    assert captured == [
+        {
+            "frame": bytes.fromhex("cfe50c0301eccf2413122560655a010091"),
+            "source": "advertisement",
+            "device_id": "DEVICE-1",
+            "received_at": received_at,
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_drain_waits_for_handler_tasks() -> None:
+    release = asyncio.Event()
+
+    async def slow_handler(**_kwargs) -> None:
+        await release.wait()
+
+    collector = BLECollector(_settings(), AppState(), slow_handler)
+    collector._schedule_frame(_device(), b"\xcf", "advertisement")
+
+    drain = asyncio.create_task(collector._drain_callback_tasks())
+    await asyncio.sleep(0.05)
+    assert drain.done() is False
+
+    release.set()
+    await drain
+    assert collector._callback_tasks == set()
+
+
+@pytest.mark.asyncio
+async def test_callback_error_sets_bluetooth_error(caplog) -> None:
+    async def failing_handler(**_kwargs) -> None:
+        raise RuntimeError("insert failed")
+
     state = AppState()
-    collector = BLECollector(_settings(), database, state)
+    collector = BLECollector(_settings(), state, failing_handler)
+
+    with caplog.at_level(logging.ERROR):
+        collector._schedule_frame(_device(), b"\xcf", "advertisement")
+        await collector._drain_callback_tasks()
+        await asyncio.sleep(0)
+
+    snapshot = state.snapshot()
+    assert snapshot["bluetooth"]["status"] == "error"
+    assert snapshot["bluetooth"]["last_error"] == "insert failed"
+    assert "measurement callback failed" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_frames_are_ignored_after_stop() -> None:
+    captured: list[dict] = []
+
+    async def capture(**kwargs) -> None:
+        captured.append(kwargs)
+
+    collector = BLECollector(_settings(), AppState(), capture)
     frame = extract_frame_from_manufacturer_data(
         bytes.fromhex("cfe50c0301eccf2413122560655a0100914a9146")
     )
     assert frame is not None
 
+    await collector.stop()
     collector._schedule_frame(_device(), frame, "advertisement")
-    await collector._drain_callback_tasks()
 
-    async with database.session() as session:
-        latest = await MeasurementRepository(session).latest()
-    await database.close()
-    assert latest is not None
-    assert latest.weight_kg == 94.9
-    assert state.snapshot()["last_measurement"].weight_kg == 94.9
+    assert collector._callback_tasks == set()
+    assert captured == []
 
 
 def test_gatt_listener_returns_after_disconnect(monkeypatch) -> None:
@@ -123,7 +185,7 @@ def test_gatt_listener_returns_after_disconnect(monkeypatch) -> None:
 
     monkeypatch.setattr(ble_module, "BleakClient", FakeClient)
     state = AppState()
-    collector = BLECollector(_settings(), Database(Path(":memory:")), state)
+    collector = _collector(_settings(), state)
 
     asyncio.run(collector._connect_and_listen(_device()))
 

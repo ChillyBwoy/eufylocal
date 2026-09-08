@@ -170,6 +170,18 @@
           "live_weight_active": {
             "type": "boolean",
             "title": "Live Weight Active"
+          },
+          "last_received_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Received At"
           }
         },
         "type": "object",
@@ -179,7 +191,8 @@
           "device_name",
           "last_error",
           "live_weight_kg",
-          "live_weight_active"
+          "live_weight_active",
+          "last_received_at"
         ],
         "title": "BluetoothStatus"
       },

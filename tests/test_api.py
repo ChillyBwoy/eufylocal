@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 
+import eufylocal.main as main_module
 from eufylocal.db import Database, MeasurementModel, MeasurementRepository
 from eufylocal.db.migration import upgrade_database
 from eufylocal.main import app, settings
@@ -25,6 +26,7 @@ def test_status_defaults(tmp_path, monkeypatch) -> None:
         payload = response.json()
         assert payload["bluetooth"]["status"] == "idle"
         assert payload["bluetooth"]["live_weight_active"] is False
+        assert payload["bluetooth"]["last_received_at"] is None
         assert payload["last_measurement"] is None
 
 
@@ -68,6 +70,8 @@ def test_measurements_and_latest(tmp_path, monkeypatch) -> None:
     with client:
         status = client.get("/api/status").json()
         assert status["last_measurement"]["weight_kg"] == 77.7
+        last_received_at = datetime.fromisoformat(status["bluetooth"]["last_received_at"])
+        assert last_received_at == measurement.measured_at
 
         latest = client.get("/api/measurements/latest").json()
         assert latest["weight_kg"] == 77.7
@@ -113,3 +117,28 @@ def test_api_routes_have_response_schemas(tmp_path, monkeypatch) -> None:
 
     assert openapi["paths"]["/api/status"]["get"]["responses"]["200"]["content"]
     assert openapi["paths"]["/api/measurements"]["get"]["responses"]["200"]["content"]
+
+
+def test_lifespan_stops_collector(tmp_path, monkeypatch) -> None:
+    calls: list[str] = []
+
+    class FakeCollector:
+        def __init__(self, _settings, _runtime, _frame_handler) -> None:
+            self.stopped = asyncio.Event()
+
+        async def run(self) -> None:
+            calls.append("run")
+            await self.stopped.wait()
+
+        async def stop(self) -> None:
+            calls.append("stop")
+            self.stopped.set()
+
+    monkeypatch.setattr(settings, "database_path", tmp_path / "lifespan.db")
+    monkeypatch.setattr(settings, "ble_enabled", True)
+    monkeypatch.setattr(main_module, "BLECollector", FakeCollector)
+
+    with TestClient(app) as client:
+        assert client.get("/api/status").status_code == 200
+
+    assert calls == ["run", "stop"]

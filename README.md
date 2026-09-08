@@ -210,7 +210,8 @@ scale's MAC address is also embedded in manufacturer data and is logged for diag
 * `eufylocal/db/session.py` owns the SQLAlchemy async engine and sessions.
 * `eufylocal/db/measurements.py` contains the measurement repository.
 * `eufylocal/db/migrations/` contains the Alembic environment and revisions.
-* `eufylocal/ble_collector.py` contains the advertising and GATT collector.
+* `eufylocal/ble_collector.py` contains the advertising and GATT collector (transport only).
+* `eufylocal/measurement_handler.py` parses frames, deduplicates, and stores measurements.
 * `eufylocal/parser.py` decodes T9146 frames.
 * `frontend/` contains the Vue 3 and Vite frontend source.
 * `eufylocal/static/` contains the generated production frontend served by FastAPI.

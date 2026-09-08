@@ -46,8 +46,9 @@ class MeasurementModel(BaseModel):
     )
 
     @classmethod
-    def now(
+    def from_received(
         cls,
+        received_at: datetime,
         weight_kg: float,
         impedance_ohm: float | None,
         device_id: str,
@@ -55,7 +56,7 @@ class MeasurementModel(BaseModel):
         raw_payload_hex: str,
     ) -> MeasurementModel:
         return cls(
-            measured_at=datetime.now(UTC),
+            measured_at=received_at,
             weight_kg=round(weight_kg, 2),
             impedance_ohm=round(impedance_ohm, 1) if impedance_ohm is not None else None,
             device_id=device_id,

@@ -34,6 +34,10 @@ export type BluetoothStatus = {
    * Live Weight Active
    */
   live_weight_active: boolean;
+  /**
+   * Last Received At
+   */
+  last_received_at: string | null;
 };
 
 /**

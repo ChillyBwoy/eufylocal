@@ -6,7 +6,6 @@ import { formatTime } from "@/utils/format";
 
 defineProps<{
   bluetooth: BluetoothStatus | null;
-  serverTime: string | null;
 }>();
 </script>
 
@@ -25,7 +24,7 @@ defineProps<{
         </div>
         <div class="border-muda-secondary-light border-b pb-4 last:border-0">
           <dt class="text-muda-secondary mb-1 text-xs tracking-wider uppercase">Last sync</dt>
-          <dd class="m-0 font-medium break-all">{{ formatTime(serverTime) }}</dd>
+          <dd class="m-0 font-medium break-all">{{ formatTime(bluetooth?.last_received_at) }}</dd>
         </div>
       </dl>
       <p v-if="bluetooth?.last_error" class="text-muda-danger mt-auto pt-6 text-sm">

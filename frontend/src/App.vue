@@ -94,7 +94,7 @@ onMounted(() => void startPolling());
             :live-weight="liveWeight"
             :measured-at="currentMeasurement?.measured_at"
           />
-          <BluetoothStatusCard :bluetooth="result.snapshot.bluetooth" :server-time="result.snapshot.server_time" />
+          <BluetoothStatusCard :bluetooth="result.snapshot.bluetooth" />
         </section>
 
         <MeasurementHistoryCard :measurements="result.measurements" />

@@ -31,6 +31,7 @@ class BluetoothStatus(BaseModel):
     last_error: str | None
     live_weight_kg: float | None
     live_weight_active: bool
+    last_received_at: datetime | None
 
 
 class Status(BaseModel):

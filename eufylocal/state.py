@@ -21,6 +21,7 @@ class AppState:
         self._live_weight_active = False
         self._live_weight_updated_at: float | None = None
         self._last_measurement: MeasurementModel | None = None
+        self._last_received_at: datetime | None = None
 
     def set_status(self, status: BLEStatus) -> None:
         with self._lock:
@@ -50,9 +51,14 @@ class AppState:
             self._live_weight_active = False
             self._live_weight_updated_at = None
 
+    def set_last_received_at(self, received_at: datetime) -> None:
+        with self._lock:
+            self._last_received_at = received_at
+
     def set_last_measurement(self, measurement: MeasurementModel) -> None:
         with self._lock:
             self._last_measurement = measurement
+            self._last_received_at = measurement.measured_at
             self._live_weight_kg = measurement.weight_kg
             self._live_weight_active = False
             self._live_weight_updated_at = None
@@ -75,6 +81,7 @@ class AppState:
                     "last_error": self._last_error,
                     "live_weight_kg": self._live_weight_kg,
                     "live_weight_active": self._live_weight_active,
+                    "last_received_at": self._last_received_at,
                 },
                 "last_measurement": self._last_measurement,
                 "server_time": datetime.now(UTC).isoformat(),

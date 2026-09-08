@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime
+from typing import Protocol
 
 from bleak import BleakClient, BleakScanner
 from bleak.backends.characteristic import BleakGATTCharacteristic
@@ -10,8 +11,7 @@ from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
 from eufylocal.config import Settings
-from eufylocal.db import Database, MeasurementModel, MeasurementRepository
-from eufylocal.parser import extract_frame_from_manufacturer_data, parse_frame
+from eufylocal.parser import extract_frame_from_manufacturer_data
 from eufylocal.schemas import BLEStatus
 from eufylocal.state import AppState
 
@@ -21,24 +21,30 @@ SCALE_NAME_TOKEN = "T9146"
 SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb"
 NOTIFY_UUID = "0000fff4-0000-1000-8000-00805f9b34fb"
 
-DEDUP_WINDOW = timedelta(seconds=60)
+
+class FrameHandler(Protocol):
+    async def __call__(
+        self,
+        *,
+        frame: bytes,
+        source: str,
+        device_id: str,
+        received_at: datetime,
+    ) -> None: ...
 
 
 class BLECollector:
     def __init__(
         self,
         settings: Settings,
-        database: Database,
         state: AppState,
+        frame_handler: FrameHandler,
     ) -> None:
         self._settings = settings
-        self._database = database
         self._state = state
+        self._frame_handler = frame_handler
         self._stop_event = asyncio.Event()
         self._client: BleakClient | None = None
-        self._last_persisted_at: datetime | None = None
-        self._last_persisted_key: tuple[float, float | None] | None = None
-        self._persist_lock = asyncio.Lock()
         self._callback_tasks: set[asyncio.Task[None]] = set()
 
     async def run(self) -> None:
@@ -105,6 +111,7 @@ class BLECollector:
         if not self._matches(device, advertisement):
             return
 
+        logger.info("scale advertisement: device=%r data=%r", device, advertisement)
         self._state.set_device(device.address, name)
 
         for raw in advertisement.manufacturer_data.values():
@@ -205,10 +212,10 @@ class BLECollector:
 
     def _on_gatt_notification(
         self,
-        _sender: BleakGATTCharacteristic,
+        sender: BleakGATTCharacteristic,
         data: bytearray,
     ) -> None:
-        logger.info("GATT notification: %s", data.hex())
+        logger.info("scale GATT notification: sender=%r data=%s", sender, data.hex())
         device_id = self._client.address if self._client else ""
         self._schedule_frame(self._client, data, "gatt", device_id)
 
@@ -219,7 +226,20 @@ class BLECollector:
         source: str,
         device_id_override: str | None = None,
     ) -> None:
-        task = asyncio.create_task(self._handle_frame(device, frame, source, device_id_override))
+        if self._stop_event.is_set():
+            return
+        received_at = datetime.now(UTC)
+        device_id = device_id_override or (
+            getattr(device, "address", "") or self._settings.device_identifier or "unknown"
+        )
+        task = asyncio.create_task(
+            self._frame_handler(
+                frame=bytes(frame),
+                source=source,
+                device_id=device_id,
+                received_at=received_at,
+            )
+        )
         self._callback_tasks.add(task)
         task.add_done_callback(self._callback_finished)
 
@@ -237,73 +257,6 @@ class BLECollector:
     async def _drain_callback_tasks(self) -> None:
         if self._callback_tasks:
             await asyncio.gather(*tuple(self._callback_tasks), return_exceptions=True)
-
-    async def _handle_frame(
-        self,
-        device: BLEDevice | BleakClient | None,
-        frame: bytes | bytearray,
-        source: str,
-        device_id_override: str | None = None,
-    ) -> None:
-        parsed = parse_frame(frame)
-        if parsed is None:
-            logger.warning("unparseable frame ignored: %s", bytes(frame).hex())
-            return
-
-        logger.info(
-            "parsed frame: weight=%.2f kg impedance=%s final=%s unit=%s source=%s",
-            parsed.weight_kg,
-            parsed.impedance_ohm,
-            parsed.is_final,
-            parsed.unit,
-            source,
-        )
-
-        self._state.set_live_weight(parsed.weight_kg, active=not parsed.is_final)
-
-        if parsed.weight_limit_exceeded:
-            logger.warning("weight limit exceeded (max weight on scale)")
-            return
-
-        if not parsed.is_final:
-            logger.debug("ignoring non-final (unstable) frame")
-            return
-
-        device_id = device_id_override or (
-            getattr(device, "address", "") or self._settings.device_identifier or "unknown"
-        )
-        measurement = MeasurementModel.now(
-            weight_kg=parsed.weight_kg,
-            impedance_ohm=parsed.impedance_ohm,
-            device_id=device_id,
-            source=source,
-            raw_payload_hex=bytes(frame).hex(),
-        )
-
-        async with self._persist_lock:
-            if self._is_duplicate(measurement):
-                logger.debug("duplicate final measurement skipped")
-                return
-
-            async with self._database.session() as session:
-                await MeasurementRepository(session).insert(measurement)
-            self._state.set_last_measurement(measurement)
-            self._last_persisted_at = measurement.measured_at
-            self._last_persisted_key = (measurement.weight_kg, measurement.impedance_ohm)
-        logger.info(
-            "stored measurement: weight=%.2f kg impedance=%s source=%s",
-            measurement.weight_kg,
-            measurement.impedance_ohm,
-            source,
-        )
-
-    def _is_duplicate(self, measurement: MeasurementModel) -> bool:
-        if self._last_persisted_at is None or self._last_persisted_key is None:
-            return False
-        key = (measurement.weight_kg, measurement.impedance_ohm)
-        if key != self._last_persisted_key:
-            return False
-        return measurement.measured_at - self._last_persisted_at < DEDUP_WINDOW
 
 
 async def scan_and_print(
