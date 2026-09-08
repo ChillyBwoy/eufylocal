@@ -12,6 +12,7 @@ def test_settings_load_dotenv(tmp_path) -> None:
                 "EUFYLOCAL_PORT=9000",
                 "EUFYLOCAL_BLE_ENABLED=false",
                 "EUFYLOCAL_AUTO_MIGRATE=false",
+                "EUFYLOCAL_DB_URL=sqlite+aiosqlite:///custom.db",
             )
         ),
         encoding="utf-8",
@@ -25,3 +26,4 @@ def test_settings_load_dotenv(tmp_path) -> None:
     assert settings.port == 9000
     assert settings.ble_enabled is False
     assert settings.auto_migrate is False
+    assert settings.db_url == "sqlite+aiosqlite:///custom.db"

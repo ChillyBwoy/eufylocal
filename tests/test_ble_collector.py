@@ -11,7 +11,8 @@ import eufylocal.ble_collector as ble_module
 from eufylocal.ble_collector import BLECollector, scan_and_print
 from eufylocal.config import Settings
 from eufylocal.parser import extract_frame_from_manufacturer_data
-from eufylocal.state import AppState
+from eufylocal.runtime import AppState
+from eufylocal.schemas import BLEStatus
 
 
 def _device(address: str = "DEVICE-1", name: str = "eufy T9146") -> SimpleNamespace:
@@ -26,30 +27,40 @@ def _settings(**values: object) -> Settings:
     return Settings(_env_file=None, **values)
 
 
+@pytest.fixture(autouse=True)
+def test_settings(monkeypatch) -> None:
+    monkeypatch.setattr(ble_module, "settings", _settings())
+
+
 async def _ignore_frame(**_kwargs) -> None:
     pass
 
 
-def _collector(settings: Settings, state: AppState | None = None) -> BLECollector:
-    return BLECollector(settings, state or AppState(), _ignore_frame)
+def _collector(
+    state: AppState | None = None,
+    frame_handler=_ignore_frame,
+) -> BLECollector:
+    app_state = state or AppState()
+    return BLECollector(app_state.apply, frame_handler)
 
 
-def test_configured_identifier_rejects_other_named_scale() -> None:
-    collector = _collector(_settings(device_identifier="SELECTED"))
+def test_configured_identifier_rejects_other_named_scale(monkeypatch) -> None:
+    monkeypatch.setattr(ble_module.settings, "device_identifier", "SELECTED")
+    collector = _collector()
 
     assert collector._matches(_device("OTHER"), _advertisement()) is False
     assert collector._matches(_device("selected"), _advertisement("other")) is True
 
 
 def test_name_is_used_when_identifier_is_not_configured() -> None:
-    collector = _collector(_settings())
+    collector = _collector()
 
     assert collector._matches(_device(name="eufy T9146"), _advertisement()) is True
     assert collector._matches(_device(name="other"), _advertisement("other")) is False
 
 
 def test_matching_advertisement_logs_all_data(caplog) -> None:
-    collector = _collector(_settings())
+    collector = _collector()
     device = _device()
     advertisement = _advertisement()
 
@@ -63,7 +74,7 @@ def test_matching_advertisement_logs_all_data(caplog) -> None:
 
 @pytest.mark.asyncio
 async def test_gatt_notification_logs_sender_and_raw_data(caplog) -> None:
-    collector = _collector(_settings())
+    collector = _collector()
     sender = SimpleNamespace(uuid="fff4", handle=4)
 
     with caplog.at_level(logging.INFO):
@@ -91,7 +102,7 @@ async def test_scheduled_frame_passes_normalized_arguments(monkeypatch) -> None:
     async def capture(**kwargs) -> None:
         captured.append(kwargs)
 
-    collector = BLECollector(_settings(), AppState(), capture)
+    collector = _collector(frame_handler=capture)
     mutable = bytearray.fromhex("cfe50c0301eccf2413122560655a010091")
 
     collector._schedule_frame(_device(), mutable, "advertisement")
@@ -115,7 +126,7 @@ async def test_drain_waits_for_handler_tasks() -> None:
     async def slow_handler(**_kwargs) -> None:
         await release.wait()
 
-    collector = BLECollector(_settings(), AppState(), slow_handler)
+    collector = _collector(frame_handler=slow_handler)
     collector._schedule_frame(_device(), b"\xcf", "advertisement")
 
     drain = asyncio.create_task(collector._drain_callback_tasks())
@@ -133,16 +144,16 @@ async def test_callback_error_sets_bluetooth_error(caplog) -> None:
         raise RuntimeError("insert failed")
 
     state = AppState()
-    collector = BLECollector(_settings(), state, failing_handler)
+    collector = _collector(state, failing_handler)
 
     with caplog.at_level(logging.ERROR):
         collector._schedule_frame(_device(), b"\xcf", "advertisement")
         await collector._drain_callback_tasks()
         await asyncio.sleep(0)
 
-    snapshot = state.snapshot()
-    assert snapshot["bluetooth"]["status"] == "error"
-    assert snapshot["bluetooth"]["last_error"] == "insert failed"
+    status = state.current()
+    assert status.status is BLEStatus.ERROR
+    assert status.last_error == "insert failed"
     assert "measurement callback failed" in caplog.text
 
 
@@ -153,7 +164,7 @@ async def test_frames_are_ignored_after_stop() -> None:
     async def capture(**kwargs) -> None:
         captured.append(kwargs)
 
-    collector = BLECollector(_settings(), AppState(), capture)
+    collector = _collector(frame_handler=capture)
     frame = extract_frame_from_manufacturer_data(
         bytes.fromhex("cfe50c0301eccf2413122560655a0100914a9146")
     )
@@ -185,11 +196,11 @@ def test_gatt_listener_returns_after_disconnect(monkeypatch) -> None:
 
     monkeypatch.setattr(ble_module, "BleakClient", FakeClient)
     state = AppState()
-    collector = _collector(_settings(), state)
+    collector = _collector(state)
 
     asyncio.run(collector._connect_and_listen(_device()))
 
-    assert state.snapshot()["bluetooth"]["status"] == "scanning"
+    assert state.current().status is BLEStatus.SCANNING
 
 
 def test_gatt_disconnects_when_notification_setup_fails(monkeypatch) -> None:
@@ -213,7 +224,7 @@ def test_gatt_disconnects_when_notification_setup_fails(monkeypatch) -> None:
             self.disconnected = True
 
     monkeypatch.setattr(ble_module, "BleakClient", FakeClient)
-    collector = _collector(_settings())
+    collector = _collector()
 
     try:
         asyncio.run(collector._connect_and_listen(_device()))
@@ -243,7 +254,7 @@ def test_dump_logs_repeated_payloads(monkeypatch, caplog) -> None:
     monkeypatch.setattr(ble_module, "BleakScanner", FakeScanner)
     caplog.set_level(logging.INFO, logger=ble_module.__name__)
 
-    asyncio.run(scan_and_print(_settings(), 0, repeat_payloads=True))
+    asyncio.run(scan_and_print(0, repeat_payloads=True))
 
     messages = [record.message for record in caplog.records if "device found" in record.message]
     assert len(messages) == 2
@@ -266,7 +277,7 @@ def test_scan_logs_each_device_once(monkeypatch, caplog) -> None:
     monkeypatch.setattr(ble_module, "BleakScanner", FakeScanner)
     caplog.set_level(logging.INFO, logger=ble_module.__name__)
 
-    asyncio.run(scan_and_print(_settings(), 0))
+    asyncio.run(scan_and_print(0))
 
     messages = [record.message for record in caplog.records if "device found" in record.message]
     assert len(messages) == 1

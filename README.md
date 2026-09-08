@@ -127,7 +127,7 @@ EUFYLOCAL_TRANSPORT=advertisement
 EUFYLOCAL_AUTO_MIGRATE=true
 EUFYLOCAL_HOST=127.0.0.1
 EUFYLOCAL_PORT=8000
-EUFYLOCAL_DATABASE_PATH=eufylocal.db
+EUFYLOCAL_DB_URL=sqlite+aiosqlite:///eufylocal.db
 EUFYLOCAL_LOG_LEVEL=INFO
 ```
 
@@ -199,19 +199,3 @@ Parser tests use previously captured real T9146 BLE payloads.
 macOS does not expose BLE MAC addresses to applications. CoreBluetooth provides a device UUID
 instead, so `EUFYLOCAL_DEVICE_IDENTIFIER` must contain that UUID rather than a MAC address. The
 scale's MAC address is also embedded in manufacturer data and is logged for diagnostics.
-
-## Project Structure
-
-* `eufylocal/main.py` contains the FastAPI app, lifecycle, CLI, and frontend routes.
-* `eufylocal/routes/` contains the status and measurement API routes.
-* `eufylocal/schemas.py` contains the Pydantic response schemas and Bluetooth status enum.
-* `eufylocal/di.py` provides FastAPI dependencies for request-scoped async sessions and repositories.
-* `eufylocal/db/models.py` contains the SQLAlchemy models.
-* `eufylocal/db/session.py` owns the SQLAlchemy async engine and sessions.
-* `eufylocal/db/measurements.py` contains the measurement repository.
-* `eufylocal/db/migrations/` contains the Alembic environment and revisions.
-* `eufylocal/ble_collector.py` contains the advertising and GATT collector (transport only).
-* `eufylocal/measurement_handler.py` parses frames, deduplicates, and stores measurements.
-* `eufylocal/parser.py` decodes T9146 frames.
-* `frontend/` contains the Vue 3 and Vite frontend source.
-* `eufylocal/static/` contains the generated production frontend served by FastAPI.

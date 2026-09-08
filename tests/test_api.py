@@ -5,16 +5,29 @@ import re
 from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
+from sqlalchemy import URL
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 import eufylocal.main as main_module
-from eufylocal.db import Database, MeasurementModel, MeasurementRepository
+import eufylocal.runtime.factory as runtime_factory
+from eufylocal.db import MeasurementModel, MeasurementRepository
 from eufylocal.db.migration import upgrade_database
 from eufylocal.main import app, settings
 
 
 def _build_client(tmp_path, monkeypatch) -> TestClient:
-    monkeypatch.setattr(settings, "database_path", tmp_path / "api.db")
+    db_url = URL.create(
+        "sqlite+aiosqlite",
+        database=str(tmp_path / "api.db"),
+    ).render_as_string(hide_password=False)
+    upgrade_database(db_url)
+    engine = create_async_engine(db_url)
+    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    monkeypatch.setattr(settings, "db_url", db_url)
     monkeypatch.setattr(settings, "ble_enabled", False)
+    monkeypatch.setattr(settings, "auto_migrate", False)
+    monkeypatch.setattr(main_module.db_session, "engine", engine)
+    monkeypatch.setattr(main_module.db_session, "AsyncSessionLocal", session_factory)
     return TestClient(app)
 
 
@@ -47,9 +60,7 @@ def test_measurements_empty_list(tmp_path, monkeypatch) -> None:
 
 
 def test_measurements_and_latest(tmp_path, monkeypatch) -> None:
-    database_path = tmp_path / "api.db"
-    upgrade_database(database_path)
-    database = Database(database_path)
+    client = _build_client(tmp_path, monkeypatch)
     measurement = MeasurementModel(
         measured_at=datetime.now(UTC),
         weight_kg=77.7,
@@ -60,13 +71,11 @@ def test_measurements_and_latest(tmp_path, monkeypatch) -> None:
     )
 
     async def insert_measurement() -> None:
-        async with database.session() as session:
+        async with main_module.db_session.AsyncSessionLocal() as session:
             await MeasurementRepository(session).insert(measurement)
-        await database.close()
 
     asyncio.run(insert_measurement())
 
-    client = _build_client(tmp_path, monkeypatch)
     with client:
         status = client.get("/api/status").json()
         assert status["last_measurement"]["weight_kg"] == 77.7
@@ -123,7 +132,7 @@ def test_lifespan_stops_collector(tmp_path, monkeypatch) -> None:
     calls: list[str] = []
 
     class FakeCollector:
-        def __init__(self, _settings, _runtime, _frame_handler) -> None:
+        def __init__(self, _runtime, _frame_handler) -> None:
             self.stopped = asyncio.Event()
 
         async def run(self) -> None:
@@ -134,11 +143,11 @@ def test_lifespan_stops_collector(tmp_path, monkeypatch) -> None:
             calls.append("stop")
             self.stopped.set()
 
-    monkeypatch.setattr(settings, "database_path", tmp_path / "lifespan.db")
+    client = _build_client(tmp_path, monkeypatch)
     monkeypatch.setattr(settings, "ble_enabled", True)
-    monkeypatch.setattr(main_module, "BLECollector", FakeCollector)
+    monkeypatch.setattr(runtime_factory, "BLECollector", FakeCollector)
 
-    with TestClient(app) as client:
+    with client:
         assert client.get("/api/status").status_code == 200
 
     assert calls == ["run", "stop"]

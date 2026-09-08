@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Protocol
 
@@ -10,10 +11,9 @@ from bleak.backends.characteristic import BleakGATTCharacteristic
 from bleak.backends.device import BLEDevice
 from bleak.backends.scanner import AdvertisementData
 
-from eufylocal.config import Settings
+from eufylocal.config import settings
 from eufylocal.parser import extract_frame_from_manufacturer_data
-from eufylocal.schemas import BLEStatus
-from eufylocal.state import AppState
+from eufylocal.schemas import MeasurementSource, StatusEvent
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class FrameHandler(Protocol):
         self,
         *,
         frame: bytes,
-        source: str,
+        source: MeasurementSource,
         device_id: str,
         received_at: datetime,
     ) -> None: ...
@@ -36,25 +36,23 @@ class FrameHandler(Protocol):
 class BLECollector:
     def __init__(
         self,
-        settings: Settings,
-        state: AppState,
+        on_status_event: Callable[..., None],
         frame_handler: FrameHandler,
     ) -> None:
-        self._settings = settings
-        self._state = state
+        self._on_status_event = on_status_event
         self._frame_handler = frame_handler
         self._stop_event = asyncio.Event()
         self._client: BleakClient | None = None
         self._callback_tasks: set[asyncio.Task[None]] = set()
 
     async def run(self) -> None:
-        logger.info("starting BLE collector (transport=%s)", self._settings.transport)
-        self._state.set_status(BLEStatus.SCANNING)
+        logger.info("starting BLE collector (transport=%s)", settings.transport)
+        self._on_status_event(StatusEvent.SCAN_STARTED)
         failed = False
         try:
-            if self._settings.transport == "gatt":
+            if settings.transport == "gatt":
                 await self._run_gatt()
-            elif self._settings.transport == "both":
+            elif settings.transport == "both":
                 gatt_task = asyncio.create_task(self._run_gatt())
                 try:
                     await self._run_advertisement()
@@ -66,18 +64,18 @@ class BLECollector:
         except Exception as exc:
             failed = True
             logger.exception("BLE collector failed")
-            self._state.set_error(str(exc))
+            self._on_status_event(StatusEvent.PROCESSING_FAILED, message=str(exc))
         finally:
             await self._disconnect()
             await self._drain_callback_tasks()
             if not failed:
-                self._state.set_status(BLEStatus.IDLE)
+                self._on_status_event(StatusEvent.COLLECTOR_STOPPED)
 
     async def stop(self) -> None:
         self._stop_event.set()
 
     def _matches(self, device: BLEDevice, advertisement: AdvertisementData) -> bool:
-        identifier = self._settings.device_identifier
+        identifier = settings.device_identifier
         if identifier:
             return device.address.casefold() == identifier.casefold()
         name = device.name or advertisement.local_name or ""
@@ -112,7 +110,11 @@ class BLECollector:
             return
 
         logger.info("scale advertisement: device=%r data=%r", device, advertisement)
-        self._state.set_device(device.address, name)
+        self._on_status_event(
+            StatusEvent.DEVICE_DISCOVERED,
+            device_id=device.address,
+            device_name=name,
+        )
 
         for raw in advertisement.manufacturer_data.values():
             frame = extract_frame_from_manufacturer_data(raw)
@@ -129,24 +131,28 @@ class BLECollector:
         while not self._stop_event.is_set():
             device = await self._find_device()
             if device is None:
-                if self._settings.continuous_scan:
+                if settings.continuous_scan:
                     await asyncio.sleep(2)
                     continue
                 await self._stop_event.wait()
                 continue
 
-            self._state.set_device(device.address, device.name)
+            self._on_status_event(
+                StatusEvent.DEVICE_DISCOVERED,
+                device_id=device.address,
+                device_name=device.name,
+            )
             try:
                 await self._connect_and_listen(device)
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
                 logger.exception("GATT connection failed for %s", device.address)
-                self._state.set_error(str(exc))
+                self._on_status_event(StatusEvent.PROCESSING_FAILED, message=str(exc))
                 await asyncio.sleep(3)
 
     async def _find_device(self) -> BLEDevice | None:
-        timeout = self._settings.scan_timeout
+        timeout = settings.scan_timeout
 
         found: BLEDevice | None = None
 
@@ -170,7 +176,7 @@ class BLECollector:
 
     async def _connect_and_listen(self, device: BLEDevice) -> None:
         logger.info("connecting to %s (%s)", device.address, device.name)
-        self._state.set_status(BLEStatus.CONNECTING)
+        self._on_status_event(StatusEvent.CONNECTION_STARTED)
         disconnected_event = asyncio.Event()
         client = BleakClient(
             device,
@@ -181,8 +187,7 @@ class BLECollector:
         disconnected_task: asyncio.Task[bool] | None = None
         try:
             await client.connect()
-            self._state.set_error(None)
-            self._state.set_status(BLEStatus.CONNECTED)
+            self._on_status_event(StatusEvent.CONNECTION_ESTABLISHED)
             logger.info("connected to %s", device.address)
             await client.start_notify(NOTIFY_UUID, self._on_gatt_notification)
             logger.info("subscribed to notifications on %s", NOTIFY_UUID)
@@ -199,7 +204,7 @@ class BLECollector:
             if tasks:
                 await asyncio.gather(*tasks, return_exceptions=True)
             await self._disconnect()
-            self._state.set_status(BLEStatus.SCANNING)
+            self._on_status_event(StatusEvent.CONNECTION_LOST)
 
     async def _disconnect(self) -> None:
         if self._client is not None and self._client.is_connected:
@@ -208,7 +213,6 @@ class BLECollector:
             except Exception:
                 logger.exception("error during disconnect")
         self._client = None
-        self._state.clear_live_weight()
 
     def _on_gatt_notification(
         self,
@@ -223,14 +227,14 @@ class BLECollector:
         self,
         device: BLEDevice | BleakClient | None,
         frame: bytes | bytearray,
-        source: str,
+        source: MeasurementSource,
         device_id_override: str | None = None,
     ) -> None:
         if self._stop_event.is_set():
             return
         received_at = datetime.now(UTC)
         device_id = device_id_override or (
-            getattr(device, "address", "") or self._settings.device_identifier or "unknown"
+            getattr(device, "address", "") or settings.device_identifier or "unknown"
         )
         task = asyncio.create_task(
             self._frame_handler(
@@ -252,7 +256,7 @@ class BLECollector:
                 "measurement callback failed",
                 exc_info=(type(error), error, error.__traceback__),
             )
-            self._state.set_error(str(error))
+            self._on_status_event(StatusEvent.PROCESSING_FAILED, message=str(error))
 
     async def _drain_callback_tasks(self) -> None:
         if self._callback_tasks:
@@ -260,7 +264,6 @@ class BLECollector:
 
 
 async def scan_and_print(
-    settings: Settings,
     duration: float,
     repeat_payloads: bool = False,
 ) -> None:

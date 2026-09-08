@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
@@ -21,5 +20,8 @@ class Settings(BaseSettings):
     auto_migrate: bool = True
     host: str = "127.0.0.1"
     port: int = Field(default=8000, ge=1, le=65535)
-    database_path: Path = Path("eufylocal.db")
+    db_url: str = "sqlite+aiosqlite:///eufylocal.db"
     log_level: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"] = "INFO"
+
+
+settings = Settings()
