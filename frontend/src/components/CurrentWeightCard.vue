@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { MudaCard } from "@mudakit/ui/MudaCard";
 
-import { formatTime, formatWeight } from "@/utils/format";
+import { formatDateTime, formatWeight } from "@/common/format";
 
 defineProps<{
   weight: number | null;
@@ -29,7 +29,7 @@ defineProps<{
           <span class="text-muda-secondary text-xl sm:text-2xl">kg</span>
         </div>
         <p class="text-muda-secondary mt-4 text-sm">
-          {{ liveWeight !== null ? "Stabilizing on scale" : formatTime(measuredAt) }}
+          {{ liveWeight !== null ? "Stabilizing on scale" : formatDateTime(measuredAt) }}
         </p>
       </div>
     </div>

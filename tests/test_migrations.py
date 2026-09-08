@@ -1,21 +1,24 @@
 import asyncio
 
 from alembic import command
-from sqlalchemy import inspect
+from sqlalchemy import URL, inspect
+from sqlalchemy.ext.asyncio import create_async_engine
 
-from eufylocal.db import Database
 from eufylocal.db.migration import migration_config
 
 
 def test_upgrade_and_downgrade(tmp_path) -> None:
-    database_path = tmp_path / "migrations.db"
-    config = migration_config(database_path)
+    db_url = URL.create(
+        "sqlite+aiosqlite",
+        database=str(tmp_path / "migrations.db"),
+    ).render_as_string(hide_password=False)
+    config = migration_config(db_url)
 
     command.upgrade(config, "head")
 
     async def inspect_schema() -> tuple[list[str], list[dict], list[dict]]:
-        database = Database(database_path)
-        async with database.engine.connect() as connection:
+        engine = create_async_engine(db_url)
+        async with engine.connect() as connection:
             schema = await connection.run_sync(
                 lambda sync_connection: (
                     inspect(sync_connection).get_table_names(),
@@ -23,7 +26,7 @@ def test_upgrade_and_downgrade(tmp_path) -> None:
                     inspect(sync_connection).get_indexes("measurements"),
                 )
             )
-        await database.close()
+        await engine.dispose()
         return schema
 
     tables, columns, indexes = asyncio.run(inspect_schema())
@@ -43,12 +46,12 @@ def test_upgrade_and_downgrade(tmp_path) -> None:
     command.downgrade(config, "base")
 
     async def table_names() -> list[str]:
-        database = Database(database_path)
-        async with database.engine.connect() as connection:
+        engine = create_async_engine(db_url)
+        async with engine.connect() as connection:
             tables = await connection.run_sync(
                 lambda sync_connection: inspect(sync_connection).get_table_names()
             )
-        await database.close()
+        await engine.dispose()
         return tables
 
     assert "measurements" not in asyncio.run(table_names())

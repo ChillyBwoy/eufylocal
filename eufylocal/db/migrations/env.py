@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 from alembic import context
-from sqlalchemy import URL, create_engine
+from sqlalchemy import URL, create_engine, make_url
 from sqlalchemy.pool import NullPool
 
 from eufylocal.config import Settings
@@ -13,13 +11,12 @@ config = context.config
 target_metadata = BaseModel.metadata
 
 
-def _database_path() -> Path:
-    configured_path = config.attributes.get("database_path")
-    return configured_path if isinstance(configured_path, Path) else Settings().database_path
-
-
 def _database_url() -> URL:
-    return URL.create("sqlite+pysqlite", database=str(_database_path()))
+    configured_url = config.attributes.get("db_url")
+    url = make_url(configured_url if isinstance(configured_url, str) else Settings().db_url)
+    if url.drivername == "sqlite+aiosqlite":
+        return url.set(drivername="sqlite+pysqlite")
+    return url
 
 
 def run_migrations_offline() -> None:
