@@ -9,6 +9,7 @@ import AppHeader from "@/components/AppHeader.vue";
 import BluetoothStatusCard from "@/components/BluetoothStatusCard.vue";
 import CurrentWeightCard from "@/components/CurrentWeightCard.vue";
 import MeasurementHistoryCard from "@/components/MeasurementHistoryCard.vue";
+import UseApiState from "@/components/UseApiState.vue";
 import { useApi } from "@/composables/useApi";
 
 const { start: startPolling, state } = useApi.poll(
@@ -69,43 +70,35 @@ onMounted(() => void startPolling());
   <main class="mx-auto h-full w-full max-w-6xl p-6">
     <AppHeader :status="status" :status-variant="statusVariant" />
 
-    <MudaErrorBox
-      v-if="state.status === 'failure' && !state.prevResult"
-      title="Server unreachable"
-      :error="state.error"
-    />
+    <UseApiState :state="state">
+      <template #idle>
+        <div class="grid min-h-[50vh] place-items-center">
+          <MudaSpinner size="large" label="Loading scale data" />
+        </div>
+      </template>
 
-    <div
-      v-else-if="state.status === 'idle' || (state.status === 'loading' && !state.prevResult)"
-      class="grid min-h-[50vh] place-items-center"
-    >
-      <MudaSpinner size="large" label="Loading scale data" />
-    </div>
+      <template #loading>
+        <div class="grid min-h-[50vh] place-items-center">
+          <MudaSpinner size="large" label="Loading scale data" />
+        </div>
+      </template>
 
-    <template v-else>
-      <section class="mb-6 grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(18rem,1fr)]">
-        <CurrentWeightCard
-          :weight="currentWeight"
-          :live-weight="liveWeight"
-          :measured-at="currentMeasurement?.measured_at"
-        />
-        <BluetoothStatusCard
-          :bluetooth="
-            state.status === 'success'
-              ? state.result.snapshot.bluetooth
-              : (state.prevResult?.snapshot.bluetooth ?? null)
-          "
-          :server-time="
-            state.status === 'success'
-              ? state.result.snapshot.server_time
-              : (state.prevResult?.snapshot.server_time ?? null)
-          "
-        />
-      </section>
+      <template #failure="{ error }">
+        <MudaErrorBox title="Server unreachable" :error="error" />
+      </template>
 
-      <MeasurementHistoryCard
-        :measurements="state.status === 'success' ? state.result.measurements : (state.prevResult?.measurements ?? [])"
-      />
-    </template>
+      <template #body="{ result }">
+        <section class="mb-6 grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(18rem,1fr)]">
+          <CurrentWeightCard
+            :weight="currentWeight"
+            :live-weight="liveWeight"
+            :measured-at="currentMeasurement?.measured_at"
+          />
+          <BluetoothStatusCard :bluetooth="result.snapshot.bluetooth" :server-time="result.snapshot.server_time" />
+        </section>
+
+        <MeasurementHistoryCard :measurements="result.measurements" />
+      </template>
+    </UseApiState>
   </main>
 </template>
