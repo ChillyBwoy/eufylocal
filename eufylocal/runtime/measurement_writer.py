@@ -14,7 +14,7 @@ class MeasurementWriter:
         self._repository = repository
         self._lock = asyncio.Lock()
 
-    async def __call__(self, event: FinalMeasurementReceived) -> None:
+    async def __call__(self, event: FinalMeasurementReceived) -> bool:
         measurement = MeasurementModel(
             measured_at=event.measured_at,
             weight_kg=round(event.weight_kg, 2),
@@ -32,7 +32,7 @@ class MeasurementWriter:
                 latest = await self._repository.latest()
                 if latest is not None and key == self._dedup_key(latest):
                     logger.debug("duplicate final measurement skipped")
-                    return
+                    return False
                 await self._repository.insert(measurement)
             except Exception:
                 await self._repository.session.rollback()
@@ -47,6 +47,7 @@ class MeasurementWriter:
             measurement.impedance_ohm,
             measurement.source,
         )
+        return True
 
     @staticmethod
     def _dedup_key(measurement: MeasurementModel) -> tuple[str, str]:

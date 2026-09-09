@@ -17,9 +17,10 @@ from eufylocal.config import settings
 from eufylocal.db import MeasurementRepository
 from eufylocal.db import session as db_session
 from eufylocal.db.migration import upgrade_database
+from eufylocal.routes.events import router as events_router
 from eufylocal.routes.info import router as info_router
 from eufylocal.routes.measurements import router as measurements_router
-from eufylocal.runtime import create_runtime
+from eufylocal.runtime import Runtime
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -41,19 +42,19 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         await asyncio.to_thread(upgrade_database, settings.db_url)
     try:
         async with db_session.AsyncSessionLocal() as writer_session:
-            runtime, collector = create_runtime(
-                MeasurementRepository(writer_session),
-            )
+            runtime = Runtime(measurement_repo=MeasurementRepository(writer_session))
             application.state.runtime = runtime
-            application.state.collector = collector
-            collector_task = asyncio.create_task(collector.run()) if settings.ble_enabled else None
+            collector_task = (
+                asyncio.create_task(runtime.collector.run()) if settings.ble_enabled else None
+            )
             try:
                 yield
             finally:
                 if collector_task is not None:
-                    await collector.stop()
+                    await runtime.collector.stop()
                     collector_task.cancel()
                     await asyncio.gather(collector_task, return_exceptions=True)
+                runtime.close()
     finally:
         await db_session.engine.dispose()
 
@@ -65,6 +66,7 @@ app = FastAPI(
 )
 app.include_router(info_router)
 app.include_router(measurements_router)
+app.include_router(events_router)
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="frontend")

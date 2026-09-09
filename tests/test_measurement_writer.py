@@ -28,7 +28,7 @@ async def test_writer_persists_measurement(
 ) -> None:
     async with session_factory() as session:
         writer = MeasurementWriter(MeasurementRepository(session))
-        await writer(_measurement())
+        assert await writer(_measurement()) is True
 
     async with session_factory() as session:
         latest = await MeasurementRepository(session).latest()
@@ -47,7 +47,7 @@ async def test_writer_deduplicates_concurrent_and_restarted_writes(
 
     async with session_factory() as session:
         restarted = MeasurementWriter(MeasurementRepository(session))
-        await restarted(_measurement())
+        assert await restarted(_measurement()) is False
 
     async with session_factory() as session:
         assert len(await MeasurementRepository(session).list()) == 1

@@ -155,6 +155,7 @@ table without Alembic, remove the test database once before starting the new ver
 * `GET /api/status` returns Bluetooth status, live weight, and the latest measurement.
 * `GET /api/measurements?limit=50` returns measurements in descending timestamp order.
 * `GET /api/measurements/latest` returns the latest measurement or `null`.
+* `GET /api/events` streams SSE notifications when the REST data should be refreshed.
 
 ## T9146 Protocol
 

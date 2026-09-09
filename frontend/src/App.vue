@@ -11,15 +11,24 @@ import CurrentWeightCard from "@/components/CurrentWeightCard.vue";
 import MeasurementHistoryCard from "@/components/MeasurementHistoryCard.vue";
 import UseApiState from "@/components/UseApiState.vue";
 import { useApi } from "@/composables/useApi";
+import { useServerEvents } from "@/composables/useServerEvents";
 
-const { start: startPolling, state } = useApi.poll(
-  () =>
-    useApi.all({
-      measurements: getMeasurements({ query: { limit: 50 }, throwOnError: true }),
-      snapshot: getStatus({ throwOnError: true }),
-    }),
-  3_000,
+const { dispatch, state } = useApi(() =>
+  useApi.all({
+    measurements: getMeasurements({ query: { limit: 50 }, throwOnError: true }),
+    snapshot: getStatus({ throwOnError: true }),
+  }),
 );
+
+const refresh = async () => {
+  try {
+    await dispatch();
+  } catch {
+    // The request state contains the error; the next server event retries the request.
+  }
+};
+
+const serverEvents = useServerEvents(() => void refresh());
 
 const currentMeasurement = computed(() => {
   if (state.value.status === "idle") {
@@ -63,7 +72,10 @@ const statusVariant = computed<MudaComponentVariant>(() => {
   return variants[status.value];
 });
 
-onMounted(() => void startPolling());
+onMounted(() => {
+  serverEvents.start();
+  void refresh();
+});
 </script>
 
 <template>
