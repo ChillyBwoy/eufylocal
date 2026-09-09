@@ -9,7 +9,7 @@ from sqlalchemy import URL
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 import eufylocal.main as main_module
-import eufylocal.runtime.factory as runtime_factory
+import eufylocal.runtime.runtime as runtime_module
 from eufylocal.db import MeasurementModel, MeasurementRepository
 from eufylocal.db.migration import upgrade_database
 from eufylocal.main import app, settings
@@ -145,7 +145,7 @@ def test_lifespan_stops_collector(tmp_path, monkeypatch) -> None:
 
     client = _build_client(tmp_path, monkeypatch)
     monkeypatch.setattr(settings, "ble_enabled", True)
-    monkeypatch.setattr(runtime_factory, "BLECollector", FakeCollector)
+    monkeypatch.setattr(runtime_module, "BLECollector", FakeCollector)
 
     with client:
         assert client.get("/api/status").status_code == 200

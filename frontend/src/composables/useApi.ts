@@ -25,17 +25,34 @@ export interface UseApiPollReturnType<T, TArgs extends unknown[]> {
   restart(...args: TArgs): Promise<void>;
 }
 
+/**
+ * Wraps an async API operation in a reactive request state machine.
+ *
+ * The state moves through `idle`, `loading`, `success`, and `failure`,
+ * preserving the last successful result across loading and failure so the UI
+ * can keep rendering stale content. Concurrent dispatches are guarded by a
+ * request id: only the most recent call may write the state, so late
+ * responses from outdated requests are ignored.
+ */
 export function useApi<T = unknown, A extends unknown[] = [], E = unknown>(
   func: UseApiOperation<T, A>,
 ): UseApiReturnType<T, A> {
   const state: Ref<UseApiState<T>> = shallowRef({ status: "idle" });
   const lastRequestId = ref(0);
 
+  /** Returns the state to `idle` and invalidates any in-flight request. */
   const reset = () => {
     lastRequestId.value += 1;
     state.value = { status: "idle" };
   };
 
+  /**
+   * Runs the operation and updates the state with its outcome.
+   *
+   * Keeps the previous result visible while loading and after a failure, and
+   * discards the outcome if a newer dispatch has started in the meantime.
+   * Rejections are rethrown after the state is updated.
+   */
   const dispatch = async (...args: A): Promise<UseApiResponse<T>> => {
     const prevResult =
       state.value.status === "success"
@@ -78,7 +95,10 @@ export type UseApiAllData<T> = {
 };
 
 /**
- * This function mimics AxiosResponse
+ * Aggregates an object of request promises into a single response keyed by
+ * the same properties. Resolves once every promise settles, or rejects as
+ * soon as any request fails, so the result can be consumed by `useApi`
+ * dispatchers.
  */
 useApi.all = <T extends Record<PropertyKey, UseApiAllRequest<unknown>>>(input: T) => {
   return new Promise<UseApiResponse<UseApiAllData<T>>>((resolve, reject) => {
@@ -106,6 +126,14 @@ useApi.all = <T extends Record<PropertyKey, UseApiAllRequest<unknown>>>(input: T
   });
 };
 
+/**
+ * Repeatedly dispatches the operation on a self-scheduling timer.
+ *
+ * The next tick is scheduled only after the current request settles, so
+ * requests never overlap. Request errors are kept in the state but never
+ * stop the loop. Polling stops automatically when the calling scope is
+ * disposed.
+ */
 useApi.poll = <T = unknown, A extends unknown[] = [], E = unknown>(
   func: UseApiOperation<T, A>,
   ms: number,
@@ -116,6 +144,7 @@ useApi.poll = <T = unknown, A extends unknown[] = [], E = unknown>(
 
   const { dispatch, reset, state } = useApi<T, A, E>(func);
 
+  /** Dispatches once, then schedules the next tick after the request settles. */
   const poll = async (id: number, args: A): Promise<void> => {
     try {
       await dispatch(...args);
@@ -128,14 +157,18 @@ useApi.poll = <T = unknown, A extends unknown[] = [], E = unknown>(
     }
   };
 
+  /** Starts polling with an immediate first dispatch. No-op if already running. */
   const start = (...args: A): Promise<void> => {
-    if (running) return Promise.resolve();
+    if (running) {
+      return Promise.resolve();
+    }
 
     running = true;
     pollingId += 1;
     return poll(pollingId, args);
   };
 
+  /** Stops polling, cancels the pending tick, and resets the state to `idle`. */
   const stop = () => {
     running = false;
     pollingId += 1;
@@ -146,6 +179,7 @@ useApi.poll = <T = unknown, A extends unknown[] = [], E = unknown>(
     timerId.value = null;
   };
 
+  /** Stops polling and immediately starts it again. */
   const restart = (...args: A): Promise<void> => {
     stop();
     return start(...args);

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from eufylocal.db import MeasurementRepository
 from eufylocal.db import session as db_session
-from eufylocal.runtime import AppState
+from eufylocal.runtime import AppState, EventBus, Runtime
 
 
 async def get_db() -> AsyncIterator[AsyncSession]:
@@ -15,7 +15,11 @@ async def get_db() -> AsyncIterator[AsyncSession]:
 
 
 def get_app_state(request: Request) -> AppState:
-    return cast(AppState, request.app.state.runtime)
+    return cast(Runtime, request.app.state.runtime).state
+
+
+def get_event_bus(request: Request) -> EventBus:
+    return cast(Runtime, request.app.state.runtime).events
 
 
 def get_measurement_repo(
@@ -30,3 +34,4 @@ MeasurementRepositoryDep = Annotated[
 ]
 
 AppStateDep = Annotated[AppState, Depends(get_app_state)]
+EventBusDep = Annotated[EventBus, Depends(get_event_bus)]
