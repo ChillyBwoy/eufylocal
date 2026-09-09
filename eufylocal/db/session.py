@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from eufylocal.config import settings
 
-engine = create_async_engine(str(settings.db_url), echo=False)
+engine = create_async_engine(str(settings.db_url), echo=False, pool_pre_ping=True)
 
 AsyncSessionLocal = async_sessionmaker(
     engine,

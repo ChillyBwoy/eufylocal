@@ -3,6 +3,7 @@ HOST ?=
 PORT ?=
 TIMEOUT ?= 10
 MESSAGE ?= schema update
+WEEKS ?= 1
 
 SERVE_ARGS = $(if $(HOST),--host $(HOST)) $(if $(PORT),--port $(PORT))
 
@@ -16,6 +17,9 @@ Usage:
 	make run           Run the local server
 	make scan          Scan BLE devices once
 	make dump          Capture repeated T9146 BLE payloads
+	make db-start      Start PostgreSQL
+	make db-stop       Stop PostgreSQL
+	make db-seed       Generate 3-4 development measurements per week
 	make db-up         Apply all pending database migrations
 	make db-current    Show the current database revision
 	make db-down       Revert the latest database migration
@@ -51,6 +55,18 @@ scan:
 .PHONY: dump
 dump:
 	$(UV) run eufylocal dump --timeout $(TIMEOUT)
+
+.PHONY: db-start
+db-start:
+	docker compose up -d --wait postgres
+
+.PHONY: db-stop
+db-stop:
+	docker compose stop postgres
+
+.PHONY: db-seed
+db-seed:
+	$(UV) run python -m eufylocal.scripts.seed --weeks $(WEEKS)
 
 .PHONY: db-up
 db-up:

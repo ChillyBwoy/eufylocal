@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from alembic import context
-from sqlalchemy import URL, create_engine, make_url
+from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 
 from eufylocal.config import Settings
@@ -11,21 +11,17 @@ config = context.config
 target_metadata = BaseModel.metadata
 
 
-def _database_url() -> URL:
+def _database_url() -> str:
     configured_url = config.attributes.get("db_url")
-    url = make_url(configured_url if isinstance(configured_url, str) else Settings().db_url)
-    if url.drivername == "sqlite+aiosqlite":
-        return url.set(drivername="sqlite+pysqlite")
-    return url
+    return configured_url if isinstance(configured_url, str) else Settings().db_url
 
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=_database_url().render_as_string(hide_password=False),
+        url=_database_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        render_as_batch=True,
     )
 
     with context.begin_transaction():
@@ -35,7 +31,6 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     connectable = create_engine(
         _database_url(),
-        connect_args={"check_same_thread": False},
         poolclass=NullPool,
     )
 
@@ -43,7 +38,6 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            render_as_batch=True,
         )
 
         with context.begin_transaction():

@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${EUFYLOCAL_DB_NAME:-eufylocal}
+      POSTGRES_USER: ${EUFYLOCAL_DB_USER:-eufylocal}
+      POSTGRES_PASSWORD: ${EUFYLOCAL_DB_PASSWORD:-eufylocal}
+    ports:
+      - "127.0.0.1:${EUFYLOCAL_DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${EUFYLOCAL_DB_USER:-eufylocal} -d ${EUFYLOCAL_DB_NAME:-eufylocal}",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  postgres-data:

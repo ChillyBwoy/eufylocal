@@ -5,7 +5,6 @@ import re
 from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
-from sqlalchemy import URL
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 import eufylocal.main as main_module
@@ -15,15 +14,10 @@ from eufylocal.db.migration import upgrade_database
 from eufylocal.main import app, settings
 
 
-def _build_client(tmp_path, monkeypatch) -> TestClient:
-    db_url = URL.create(
-        "sqlite+aiosqlite",
-        database=str(tmp_path / "api.db"),
-    ).render_as_string(hide_password=False)
-    upgrade_database(db_url)
-    engine = create_async_engine(db_url)
+def _build_client(database_url: str, monkeypatch) -> TestClient:
+    upgrade_database(database_url)
+    engine = create_async_engine(database_url)
     session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    monkeypatch.setattr(settings, "db_url", db_url)
     monkeypatch.setattr(settings, "ble_enabled", False)
     monkeypatch.setattr(settings, "auto_migrate", False)
     monkeypatch.setattr(main_module.db_session, "engine", engine)
@@ -31,8 +25,8 @@ def _build_client(tmp_path, monkeypatch) -> TestClient:
     return TestClient(app)
 
 
-def test_status_defaults(tmp_path, monkeypatch) -> None:
-    client = _build_client(tmp_path, monkeypatch)
+def test_status_defaults(database_url, monkeypatch) -> None:
+    client = _build_client(database_url, monkeypatch)
     with client:
         response = client.get("/api/status")
         assert response.status_code == 200
@@ -43,24 +37,24 @@ def test_status_defaults(tmp_path, monkeypatch) -> None:
         assert payload["last_measurement"] is None
 
 
-def test_latest_empty_returns_null(tmp_path, monkeypatch) -> None:
-    client = _build_client(tmp_path, monkeypatch)
+def test_latest_empty_returns_null(database_url, monkeypatch) -> None:
+    client = _build_client(database_url, monkeypatch)
     with client:
         response = client.get("/api/measurements/latest")
         assert response.status_code == 200
         assert response.json() is None
 
 
-def test_measurements_empty_list(tmp_path, monkeypatch) -> None:
-    client = _build_client(tmp_path, monkeypatch)
+def test_measurements_empty_list(database_url, monkeypatch) -> None:
+    client = _build_client(database_url, monkeypatch)
     with client:
         response = client.get("/api/measurements")
         assert response.status_code == 200
         assert response.json() == []
 
 
-def test_measurements_and_latest(tmp_path, monkeypatch) -> None:
-    client = _build_client(tmp_path, monkeypatch)
+def test_measurements_and_latest(database_url, monkeypatch) -> None:
+    client = _build_client(database_url, monkeypatch)
     measurement = MeasurementModel(
         measured_at=datetime.now(UTC),
         weight_kg=77.7,
@@ -91,23 +85,23 @@ def test_measurements_and_latest(tmp_path, monkeypatch) -> None:
         assert listed[0]["raw_payload_hex"] == "cf00000000000000000000"
 
 
-def test_measurements_limit_validation(tmp_path, monkeypatch) -> None:
-    client = _build_client(tmp_path, monkeypatch)
+def test_measurements_limit_validation(database_url, monkeypatch) -> None:
+    client = _build_client(database_url, monkeypatch)
     with client:
         assert client.get("/api/measurements?limit=0").status_code == 422
         assert client.get("/api/measurements?limit=9999").status_code == 422
 
 
-def test_index_served(tmp_path, monkeypatch) -> None:
-    client = _build_client(tmp_path, monkeypatch)
+def test_index_served(database_url, monkeypatch) -> None:
+    client = _build_client(database_url, monkeypatch)
     with client:
         response = client.get("/")
         assert response.status_code == 200
         assert "eufylocal" in response.text
 
 
-def test_static_assets_are_served(tmp_path, monkeypatch) -> None:
-    client = _build_client(tmp_path, monkeypatch)
+def test_static_assets_are_served(database_url, monkeypatch) -> None:
+    client = _build_client(database_url, monkeypatch)
     with client:
         index = client.get("/")
         asset_paths = re.findall(r'(?:src|href)="(/assets/[^"]+)"', index.text)
@@ -119,8 +113,8 @@ def test_static_assets_are_served(tmp_path, monkeypatch) -> None:
         assert any("text/css" in asset.headers["content-type"] for asset in assets)
 
 
-def test_api_routes_have_response_schemas(tmp_path, monkeypatch) -> None:
-    client = _build_client(tmp_path, monkeypatch)
+def test_api_routes_have_response_schemas(database_url, monkeypatch) -> None:
+    client = _build_client(database_url, monkeypatch)
     with client:
         openapi = client.get("/openapi.json").json()
 
@@ -128,7 +122,7 @@ def test_api_routes_have_response_schemas(tmp_path, monkeypatch) -> None:
     assert openapi["paths"]["/api/measurements"]["get"]["responses"]["200"]["content"]
 
 
-def test_lifespan_stops_collector(tmp_path, monkeypatch) -> None:
+def test_lifespan_stops_collector(database_url, monkeypatch) -> None:
     calls: list[str] = []
 
     class FakeCollector:
@@ -143,7 +137,7 @@ def test_lifespan_stops_collector(tmp_path, monkeypatch) -> None:
             calls.append("stop")
             self.stopped.set()
 
-    client = _build_client(tmp_path, monkeypatch)
+    client = _build_client(database_url, monkeypatch)
     monkeypatch.setattr(settings, "ble_enabled", True)
     monkeypatch.setattr(runtime_module, "BLECollector", FakeCollector)
 
