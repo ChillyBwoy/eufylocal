@@ -1,8 +1,7 @@
 import asyncio
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
-from sqlalchemy.exc import StatementError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from eufylocal.db import MeasurementModel, MeasurementRepository
@@ -92,18 +91,26 @@ async def test_latest_uses_insertion_order(
 
 
 @pytest.mark.asyncio
-async def test_naive_timestamp_rolls_back(
+async def test_timestamp_round_trips_in_utc(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
     async with session_factory() as session:
         repository = MeasurementRepository(session)
         measurement = _measurement()
-        measurement.measured_at = datetime.now()
+        measurement.measured_at = datetime(
+            2026,
+            9,
+            9,
+            15,
+            30,
+            tzinfo=timezone(timedelta(hours=3)),
+        )
 
-        with pytest.raises(StatementError):
-            await repository.insert(measurement)
+        await repository.insert(measurement)
+        latest = await repository.latest()
 
-        assert await repository.list() == []
+        assert latest is not None
+        assert latest.measured_at == datetime(2026, 9, 9, 12, 30, tzinfo=UTC)
 
 
 @pytest.mark.asyncio

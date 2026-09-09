@@ -2,6 +2,7 @@ from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy import URL
 
 
 class Settings(BaseSettings):
@@ -20,8 +21,23 @@ class Settings(BaseSettings):
     auto_migrate: bool = True
     host: str = "127.0.0.1"
     port: int = Field(default=8000, ge=1, le=65535)
-    db_url: str = "sqlite+aiosqlite:///eufylocal.db"
+    db_host: str = "127.0.0.1"
+    db_port: int = Field(default=5432, ge=1, le=65535)
+    db_name: str = "eufylocal"
+    db_user: str = "eufylocal"
+    db_password: str = "eufylocal"
     log_level: Literal["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "TRACE"] = "INFO"
+
+    @property
+    def db_url(self) -> str:
+        return URL.create(
+            "postgresql+psycopg",
+            username=self.db_user,
+            password=self.db_password,
+            host=self.db_host,
+            port=self.db_port,
+            database=self.db_name,
+        ).render_as_string(hide_password=False)
 
 
 settings = Settings()

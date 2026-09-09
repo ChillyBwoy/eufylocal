@@ -2,9 +2,9 @@
 
 A local Bluetooth LE bridge for the **eufy Smart Scale C1 (T9146)**.
 
-The application works entirely offline. The MacBook acts as the BLE client, local HTTP
-server, and measurement storage. It does not require eufyLife, an account, internet access,
-or third-party services.
+The application works entirely offline. The MacBook acts as the BLE client and local HTTP
+server, while PostgreSQL stores measurements locally. It does not require eufyLife, an account,
+internet access, or third-party services.
 
 ## Features
 
@@ -12,7 +12,7 @@ or third-party services.
 * Reads weight and, when available, impedance from advertising packets without connecting,
   or through GATT (`0xFFF0` with notifications on `0xFFF4`).
 * Stores the UTC timestamp, weight in kilograms, impedance, device identifier, data source,
-  and raw hexadecimal payload in SQLite through the SQLAlchemy 2.x async engine.
+  and raw hexadecimal payload in PostgreSQL through the SQLAlchemy 2.x async engine.
 * Provides a local web interface and HTTP API.
 * Never sends the history-clear command (`F2 01`) or writes any other data to the scale.
 
@@ -20,6 +20,7 @@ or third-party services.
 
 * Python 3.14
 * macOS with Bluetooth LE
+* PostgreSQL 16 (a Compose service is included for local development)
 
 ## Installation
 
@@ -30,6 +31,12 @@ make install
 ```
 
 This installs both the Python dependencies with `uv` and the frontend dependencies with `npm`.
+
+Start the local PostgreSQL service before running the application or tests:
+
+```bash
+make db-start
+```
 
 Using a virtual environment:
 
@@ -127,7 +134,11 @@ EUFYLOCAL_TRANSPORT=advertisement
 EUFYLOCAL_AUTO_MIGRATE=true
 EUFYLOCAL_HOST=127.0.0.1
 EUFYLOCAL_PORT=8000
-EUFYLOCAL_DB_URL=sqlite+aiosqlite:///eufylocal.db
+EUFYLOCAL_DB_HOST=127.0.0.1
+EUFYLOCAL_DB_PORT=5432
+EUFYLOCAL_DB_NAME=eufylocal
+EUFYLOCAL_DB_USER=eufylocal
+EUFYLOCAL_DB_PASSWORD=eufylocal
 EUFYLOCAL_LOG_LEVEL=INFO
 ```
 
@@ -140,15 +151,24 @@ Alembic migrations are applied automatically at startup when `EUFYLOCAL_AUTO_MIG
 which is the default. They can also be managed explicitly:
 
 ```bash
-make db-upgrade
+make db-up
 make db-current
-make db-downgrade
-make db-revision MESSAGE="add a column"
+make db-down
+make db-rev MESSAGE="add a column"
 ```
 
 All SQLAlchemy and Alembic files are contained in `eufylocal/db/`. The initial migration creates
-the `measurements` table. If upgrading from the earlier development version that created this
-table without Alembic, remove the test database once before starting the new version.
+the `measurements` table in PostgreSQL. Existing SQLite databases are not migrated.
+
+Generate 3–4 development measurements for the last week:
+
+```bash
+make db-seed
+```
+
+Use `make db-seed WEEKS=12` to generate the same sampling frequency across a longer period. The
+command only connects to PostgreSQL on localhost and replaces its previous `DEV-SCALE` records
+without deleting real measurements.
 
 ## HTTP API
 
