@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from eufylocal.schemas.frame import ParsedFrame
 from eufylocal.schemas.measurement import MeasurementUnit
 

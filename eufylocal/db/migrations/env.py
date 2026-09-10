@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from alembic import context
 from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
