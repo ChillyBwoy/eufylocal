@@ -15,6 +15,8 @@ from fastapi.staticfiles import StaticFiles
 from eufylocal.config import settings
 from eufylocal.router import api_router
 from eufylocal.scanner import scan
+from eufylocal.schemas.sse import ServerSideStatusMessage
+from eufylocal.sse_manager import sse_manager
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -22,6 +24,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 async def consume_frames() -> None:
     async for frame in scan():
         print(frame, flush=True)
+        sse_manager.publish(ServerSideStatusMessage())
 
 
 def custom_generate_unique_id(route: APIRoute):
@@ -51,9 +54,7 @@ app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="frontend")
 
 class Server(uvicorn.Server):
     def handle_exit(self, sig: int, frame: FrameType | None) -> None:
-        runtime = getattr(app.state, "runtime", None)
-        if runtime is not None:
-            runtime.close()
+        sse_manager.close()
         super().handle_exit(sig, frame)
 
 

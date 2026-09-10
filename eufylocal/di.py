@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from eufylocal.db import session as db_session
 from eufylocal.db.repositories import MeasurementRepository
-from eufylocal.sse import SSE
+from eufylocal.sse_manager import SSEManager, sse_manager
 
 
 async def get_db() -> AsyncIterator[AsyncSession]:
@@ -14,11 +14,11 @@ async def get_db() -> AsyncIterator[AsyncSession]:
         yield session
 
 
-def get_sse() -> SSE:
-    return SSE()
+def get_sse_manager() -> SSEManager:
+    return sse_manager
 
 
-SSEDep = Annotated[SSE, Depends(get_sse)]
+SSEManagerDep = Annotated[SSEManager, Depends(get_sse_manager)]
 
 
 def get_measurement_repo(
