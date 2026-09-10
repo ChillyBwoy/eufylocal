@@ -14,7 +14,7 @@ Usage:
 	make dev           Run the local server and Vite
 	make db-start      Start PostgreSQL
 	make db-stop       Stop PostgreSQL
-	make db-seed       Generate 3-4 development measurements per week
+	make db-seed       Generate 2-3 development measurements on 3-4 days per week
 	make db-up         Apply all pending database migrations
 	make db-current    Show the current database revision
 	make db-down       Revert the latest database migration
