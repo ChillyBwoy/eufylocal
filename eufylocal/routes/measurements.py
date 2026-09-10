@@ -1,16 +1,12 @@
 from fastapi import APIRouter, Query
 
 from eufylocal.di import MeasurementRepositoryDep
-from eufylocal.schemas import Measurement
+from eufylocal.schemas.measurement import Measurement
 
-router = APIRouter(prefix="/api/measurements", tags=["measurements"])
+router = APIRouter(tags=["measurements"], prefix="/measurements")
 
 
-@router.get(
-    "",
-    response_model=list[Measurement],
-    operation_id="get_measurements",
-)
+@router.get("/", response_model=list[Measurement], operation_id="get_measurements")
 async def measurements(
     repository: MeasurementRepositoryDep,
     limit: int = Query(default=50, ge=1, le=500),
@@ -19,11 +15,7 @@ async def measurements(
     return [Measurement.model_validate(item) for item in items]
 
 
-@router.get(
-    "/latest",
-    response_model=Measurement | None,
-    operation_id="get_latest_measurement",
-)
+@router.get("/latest", response_model=Measurement | None, operation_id="get_latest_measurement")
 async def latest_measurement(
     repository: MeasurementRepositoryDep,
 ) -> Measurement | None:

@@ -4,21 +4,19 @@ from alembic import context
 from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 
-from eufylocal.config import Settings
+from eufylocal.config import settings
 from eufylocal.db.models import BaseModel
 
 config = context.config
 target_metadata = BaseModel.metadata
 
 
-def _database_url() -> str:
-    configured_url = config.attributes.get("db_url")
-    return configured_url if isinstance(configured_url, str) else Settings().db_url
+config.set_main_option("sqlalchemy.url", str(settings.db_url))
 
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=_database_url(),
+        url=str(settings.db_url),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -30,7 +28,7 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     connectable = create_engine(
-        _database_url(),
+        str(settings.db_url),
         poolclass=NullPool,
     )
 

@@ -75,7 +75,7 @@ For frontend development, run both Vite and the API server:
 make dev
 ```
 
-Open <http://127.0.0.1:5137>. Vite proxies `/api` requests to the FastAPI server on port `8000`.
+Open <http://127.0.0.1:5173>. Vite proxies `/api` requests to the FastAPI server on port `8000`.
 The backend continues to serve the last production frontend build at port `8000`.
 
 Build the production Vue application and Python distributions with:
@@ -107,13 +107,6 @@ uv run eufylocal scan
 make scan TIMEOUT=10
 ```
 
-Capture repeated raw BLE payloads for diagnostics:
-
-```bash
-uv run eufylocal dump --timeout 30
-# or
-make dump TIMEOUT=30
-```
 
 Create the local configuration after discovering the scale:
 
@@ -158,7 +151,8 @@ make db-rev MESSAGE="add a column"
 ```
 
 All SQLAlchemy and Alembic files are contained in `eufylocal/db/`. The initial migration creates
-the `measurements` table in PostgreSQL. Existing SQLite databases are not migrated.
+the append-only `measurements` table and indexes for complete and final-only timelines in
+PostgreSQL. Existing SQLite databases are not migrated.
 
 Generate 3–4 development measurements for the last week:
 
@@ -173,8 +167,9 @@ without deleting real measurements.
 ## HTTP API
 
 * `GET /api/status` returns Bluetooth status, live weight, and the latest measurement.
-* `GET /api/measurements?limit=50` returns measurements in descending timestamp order.
-* `GET /api/measurements/latest` returns the latest measurement or `null`.
+* `GET /api/measurements?limit=50` returns final measurements in descending timestamp order.
+* `GET /api/measurements?limit=50&final_only=false` returns every stored BLE frame.
+* `GET /api/measurements/latest` returns the latest final measurement or `null`.
 * `GET /api/events` streams SSE notifications when the REST data should be refreshed.
 
 ## T9146 Protocol
@@ -193,8 +188,9 @@ A measurement frame is 11 bytes and starts with `CF`:
 Advertising manufacturer data has this layout:
 `[6-byte MAC][11-byte frame][1-byte battery][0x9146 model]`.
 
-Weight is always transmitted in kilograms, regardless of the scale's display unit. Only stable
-final measurements are stored. Intermediate weight is displayed live but is not added to history.
+Weight is always transmitted in kilograms, regardless of the scale's display unit. Every valid
+frame is stored without deduplication. Intermediate and final measurements are distinguished by
+the `is_final` field; the HTTP history returns only final measurements by default.
 
 ## Why Not `eufylife-ble-client`
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 
 
-class EventBus:
+class SSE:
     def __init__(self) -> None:
         self._subscribers: set[asyncio.Queue[None]] = set()
 

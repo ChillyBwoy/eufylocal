@@ -15,8 +15,6 @@ Usage:
 
 	make install       Install project and development dependencies
 	make run           Run the local server
-	make scan          Scan BLE devices once
-	make dump          Capture repeated T9146 BLE payloads
 	make db-start      Start PostgreSQL
 	make db-stop       Stop PostgreSQL
 	make db-seed       Generate 3-4 development measurements per week
@@ -47,10 +45,6 @@ sync:
 .PHONY: run
 run:
 	$(UV) run eufylocal serve $(SERVE_ARGS)
-
-.PHONY: scan
-scan:
-	$(UV) run eufylocal scan --timeout $(TIMEOUT)
 
 .PHONY: dump
 dump:

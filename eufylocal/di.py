@@ -1,12 +1,12 @@
 from collections.abc import AsyncIterator
-from typing import Annotated, cast
+from typing import Annotated
 
-from fastapi import Depends, Request
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from eufylocal.db import MeasurementRepository
 from eufylocal.db import session as db_session
-from eufylocal.runtime import AppState, EventBus, Runtime
+from eufylocal.db.repositories import MeasurementRepository
+from eufylocal.sse import SSE
 
 
 async def get_db() -> AsyncIterator[AsyncSession]:
@@ -14,12 +14,11 @@ async def get_db() -> AsyncIterator[AsyncSession]:
         yield session
 
 
-def get_app_state(request: Request) -> AppState:
-    return cast(Runtime, request.app.state.runtime).state
+def get_sse() -> SSE:
+    return SSE()
 
 
-def get_event_bus(request: Request) -> EventBus:
-    return cast(Runtime, request.app.state.runtime).events
+SSEDep = Annotated[SSE, Depends(get_sse)]
 
 
 def get_measurement_repo(
@@ -32,6 +31,3 @@ MeasurementRepositoryDep = Annotated[
     MeasurementRepository,
     Depends(get_measurement_repo),
 ]
-
-AppStateDep = Annotated[AppState, Depends(get_app_state)]
-EventBusDep = Annotated[EventBus, Depends(get_event_bus)]

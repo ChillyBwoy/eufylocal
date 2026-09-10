@@ -37,10 +37,9 @@ def generate_measurements(
             measurements.append(
                 MeasurementModel(
                     measured_at=measured_at,
-                    weight_kg=round(80 + randomizer.uniform(-1.2, 1.2), 2),
+                    weight=round(80 + randomizer.uniform(-1.2, 1.2), 2),
                     impedance_ohm=round(500 + randomizer.uniform(-25, 25), 1),
                     device_id=DEV_DEVICE_ID,
-                    source="advertisement",
                     raw_payload_hex=f"cf{int(measured_at.timestamp() * 1_000_000):020x}",
                 )
             )
@@ -77,8 +76,8 @@ def main(argv: list[str] | None = None) -> None:
         now=datetime.now(UTC),
         seed=args.seed,
     )
-    upgrade_database(settings.db_url)
-    asyncio.run(seed_database(settings.db_url, measurements))
+    upgrade_database(str(settings.db_url))
+    asyncio.run(seed_database(str(settings.db_url), measurements))
     print(f"Generated {len(measurements)} measurements across {args.weeks} week(s)")
 
 

@@ -7,6 +7,7 @@ from eufylocal.parser import (
     extract_frame_from_manufacturer_data,
     parse_frame,
 )
+from eufylocal.schemas.measurement import MeasurementUnit
 
 REAL_MANUFACTURER_DATA = [
     ("cfe50c0301eccf2413122560655a0100914a9146", 94.9, 490.0, "lb"),
@@ -45,7 +46,7 @@ def test_parse_real_manufacturer_data(
 
     parsed = parse_frame(frame)
     assert parsed is not None
-    assert parsed.weight_kg == pytest.approx(expected_weight)
+    assert parsed.weight == pytest.approx(expected_weight)
     assert parsed.impedance_ohm == pytest.approx(expected_impedance)
     assert parsed.is_final is True
     assert parsed.weight_limit_exceeded is False
@@ -78,7 +79,7 @@ def test_parse_kg_unit() -> None:
     frame[10] = compute_checksum(frame[:-1])
     parsed = parse_frame(frame)
     assert parsed is not None
-    assert parsed.unit == "kg"
+    assert parsed.unit == MeasurementUnit.KG
 
 
 def test_parse_rejects_bad_checksum() -> None:

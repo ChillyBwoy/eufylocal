@@ -8,6 +8,7 @@ export function useServerEvents(onRefresh: () => void) {
   let hasOpened = false;
 
   const scheduleRefresh = () => {
+    console.log("refresh");
     if (refreshTimer != null) return;
 
     refreshTimer = window.setTimeout(() => {
@@ -22,6 +23,7 @@ export function useServerEvents(onRefresh: () => void) {
     source = new EventSource("/api/events");
     source.addEventListener("refresh", scheduleRefresh);
     source.addEventListener("open", () => {
+      console.log("open");
       if (hasOpened) {
         scheduleRefresh();
       } else {

@@ -45,6 +45,16 @@
               "default": 50,
               "title": "Limit"
             }
+          },
+          {
+            "name": "final_only",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Final Only"
+            }
           }
         ],
         "responses": {
@@ -231,6 +241,10 @@
             ],
             "title": "Impedance Ohm"
           },
+          "is_final": {
+            "type": "boolean",
+            "title": "Is Final"
+          },
           "device_id": {
             "type": "string",
             "title": "Device Id"
@@ -253,6 +267,7 @@
           "measured_at",
           "weight_kg",
           "impedance_ohm",
+          "is_final",
           "device_id",
           "source",
           "raw_payload_hex"

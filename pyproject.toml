@@ -10,7 +10,7 @@ requires-python = ">=3.14"
 dependencies = [
     "alembic>=1.16",
     "bleak>=0.22",
-    "fastapi>=0.115",
+    "fastapi>=0.135",
     "greenlet>=3.2",
     "psycopg[binary]>=3.2",
     "pydantic-settings>=2.10",

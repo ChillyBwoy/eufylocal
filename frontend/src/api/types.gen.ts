@@ -67,6 +67,10 @@ export type Measurement = {
    */
   impedance_ohm: number | null;
   /**
+   * Is Final
+   */
+  is_final: boolean;
+  /**
    * Device Id
    */
   device_id: string;
@@ -144,6 +148,10 @@ export type GetMeasurementsData = {
      * Limit
      */
     limit?: number;
+    /**
+     * Final Only
+     */
+    final_only?: boolean;
   };
   url: "/api/measurements";
 };
