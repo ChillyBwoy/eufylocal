@@ -29,6 +29,10 @@ export type HttpValidationError = {
  */
 export type Measurement = {
   /**
+   * Id
+   */
+  id: number;
+  /**
    * Measured At
    */
   measured_at: string;
@@ -42,13 +46,9 @@ export type Measurement = {
    */
   impedance_ohm: number | null;
   /**
-   * Device Id
+   * Raw Data
    */
-  device_id: string;
-  /**
-   * Raw Payload Hex
-   */
-  raw_payload_hex: string;
+  raw_data: string;
 };
 
 /**

@@ -181,6 +181,10 @@
       },
       "Measurement": {
         "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
           "measured_at": {
             "type": "string",
             "format": "date-time",
@@ -204,23 +208,19 @@
             ],
             "title": "Impedance Ohm"
           },
-          "device_id": {
+          "raw_data": {
             "type": "string",
-            "title": "Device Id"
-          },
-          "raw_payload_hex": {
-            "type": "string",
-            "title": "Raw Payload Hex"
+            "title": "Raw Data"
           }
         },
         "type": "object",
         "required": [
+          "id",
           "measured_at",
           "weight",
           "unit",
           "impedance_ohm",
-          "device_id",
-          "raw_payload_hex"
+          "raw_data"
         ],
         "title": "Measurement"
       },

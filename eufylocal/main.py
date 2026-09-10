@@ -13,17 +13,36 @@ from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 
 from eufylocal.config import settings
+from eufylocal.db.repositories import MeasurementRepository
+from eufylocal.db.session import AsyncSessionLocal
 from eufylocal.router import api_router
 from eufylocal.scanner import scan
-from eufylocal.schemas.sse import ServerSideStatusMessage
+from eufylocal.schemas.sse import ServerSideRefreshMessage, ServerSideStatusMessage
 from eufylocal.sse_manager import sse_manager
 
 STATIC_DIR = Path(__file__).parent / "static"
 
+logger = logging.getLogger(__name__)
 
-async def consume_frames() -> None:
+
+async def consume_frames(measurement_repo: MeasurementRepository) -> None:
+    waiting_for_next_weighing = False
+
     async for frame in scan():
-        print(frame, flush=True)
+        if waiting_for_next_weighing:
+            if frame.is_final:
+                continue
+            waiting_for_next_weighing = False
+
+        logger.info(
+            "weight=%.2f unit=%s impedance=%s weight_limit_exceeded=%s is_final=%s raw=%s",
+            frame.weight,
+            frame.unit,
+            f"{frame.impedance_ohm:.2f}" if frame.impedance_ohm is not None else "n/a",
+            frame.weight_limit_exceeded,
+            frame.is_final,
+            frame.raw,
+        )
 
         message = ServerSideStatusMessage(
             impedance_ohm=frame.impedance_ohm,
@@ -33,6 +52,16 @@ async def consume_frames() -> None:
 
         sse_manager.publish(message)
 
+        waiting_for_next_weighing = frame.is_final
+        if frame.is_final:
+            await measurement_repo.insert(
+                weight=frame.weight,
+                unit=frame.unit,
+                impedance_ohm=frame.impedance_ohm,
+                raw_data=frame.raw,
+            )
+            sse_manager.publish(ServerSideRefreshMessage())
+
 
 def custom_generate_unique_id(route: APIRoute):
     return f"{route.tags[0]}-{route.name}"
@@ -40,12 +69,14 @@ def custom_generate_unique_id(route: APIRoute):
 
 @asynccontextmanager
 async def lifespan(_application: FastAPI) -> AsyncGenerator[None]:
-    collector_task = asyncio.create_task(consume_frames())
-    try:
-        yield
-    finally:
-        collector_task.cancel()
-        await asyncio.gather(collector_task, return_exceptions=True)
+    async with AsyncSessionLocal() as db:
+        measurement_repo = MeasurementRepository(db)
+        collector_task = asyncio.create_task(consume_frames(measurement_repo=measurement_repo))
+        try:
+            yield
+        finally:
+            collector_task.cancel()
+            await asyncio.gather(collector_task, return_exceptions=True)
 
 
 app = FastAPI(

@@ -58,3 +58,22 @@
     @apply text-lg;
   }
 }
+
+@utility scroll-container-v-* {
+  overflow: auto;
+  background:
+    linear-gradient(--value(--color-*) 30%, rgba(255, 255, 255, 0)),
+    linear-gradient(rgba(255, 255, 255, 0), --value(--color-*) 70%) 0 100%,
+    radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0)),
+    radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0)) 0 100%;
+
+  background-repeat: no-repeat;
+  background-color: --value(--color-*);
+  background-size:
+    100% 40px,
+    100% 40px,
+    100% 14px,
+    100% 14px;
+
+  background-attachment: local, local, scroll, scroll;
+}

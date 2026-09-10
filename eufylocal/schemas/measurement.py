@@ -12,9 +12,9 @@ class MeasurementUnit(StrEnum):
 class Measurement(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    id: int
     measured_at: datetime
     weight: float
     unit: MeasurementUnit
     impedance_ohm: float | None
-    device_id: str
-    raw_payload_hex: str
+    raw_data: str

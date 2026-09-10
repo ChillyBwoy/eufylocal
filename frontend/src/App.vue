@@ -43,7 +43,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="mx-auto h-full w-full max-w-6xl p-6">
+  <main class="mx-auto grid h-full w-full max-w-6xl grid-rows-[auto_1fr] p-6">
     <AppHeader />
 
     <UseApiState :state="state">
@@ -64,16 +64,16 @@ onMounted(async () => {
       </template>
 
       <template #body="{ result }">
-        <section class="mb-6">
+        <div class="grid h-full grid-rows-[auto_1fr] gap-4">
           <CurrentWeightCard
             :weight="currentWeight"
             :live-weight="liveWeight"
             :unit="currentUnit"
             :measured-at="currentMeasurement?.measured_at"
           />
-        </section>
 
-        <MeasurementHistoryCard :measurements="result" />
+          <MeasurementHistoryCard :measurements="result" class="h-full" />
+        </div>
       </template>
     </UseApiState>
   </main>

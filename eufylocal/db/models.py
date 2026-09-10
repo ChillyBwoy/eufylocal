@@ -29,7 +29,6 @@ class MeasurementModel(BaseModel):
     weight: Mapped[float] = mapped_column(Float, nullable=False)
     unit: Mapped[MeasurementUnit] = mapped_column(Enum(MeasurementUnit), nullable=False)
     impedance_ohm: Mapped[float | None] = mapped_column(Float)
-    device_id: Mapped[str] = mapped_column(Text, nullable=False)
     raw_data: Mapped[str] = mapped_column(Text, nullable=False)
 
     __table_args__ = (

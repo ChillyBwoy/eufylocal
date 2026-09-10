@@ -15,8 +15,7 @@ class MeasurementRepository:
         self,
         weight: float,
         unit: MeasurementUnit,
-        impedance_ohm: float,
-        device_id: str,
+        impedance_ohm: float | None,
         raw_data: str,
     ) -> None:
         measurement = MeasurementModel(
@@ -24,7 +23,6 @@ class MeasurementRepository:
             weight=weight,
             unit=unit,
             impedance_ohm=impedance_ohm,
-            device_id=device_id,
             raw_data=raw_data,
         )
         self.session.add(measurement)
