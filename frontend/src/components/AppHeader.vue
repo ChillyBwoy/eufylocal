@@ -1,14 +1,5 @@
 <script setup lang="ts">
-import { type MudaComponentVariant } from "@mudakit/ui";
-import { MudaTag } from "@mudakit/ui/MudaTag";
-
-import { type BleStatus } from "@/api";
 import ThemeToggle from "@/components/ThemeToggle.vue";
-
-defineProps<{
-  status: BleStatus;
-  statusVariant: MudaComponentVariant;
-}>();
 </script>
 
 <template>
@@ -18,7 +9,6 @@ defineProps<{
       <h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">eufylocal</h1>
     </div>
     <div class="flex items-center gap-3">
-      <MudaTag :variant="statusVariant" size="medium" class="capitalize">{{ status }}</MudaTag>
       <ThemeToggle />
     </div>
   </header>

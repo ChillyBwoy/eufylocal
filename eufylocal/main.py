@@ -24,7 +24,14 @@ STATIC_DIR = Path(__file__).parent / "static"
 async def consume_frames() -> None:
     async for frame in scan():
         print(frame, flush=True)
-        sse_manager.publish(ServerSideStatusMessage())
+
+        message = ServerSideStatusMessage(
+            impedance_ohm=frame.impedance_ohm,
+            weight=frame.weight,
+            unit=frame.unit,
+        )
+
+        sse_manager.publish(message)
 
 
 def custom_generate_unique_id(route: APIRoute):

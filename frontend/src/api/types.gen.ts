@@ -5,39 +5,13 @@ export type ClientOptions = {
 };
 
 /**
- * BLEStatus
+ * HTTPError
  */
-export type BleStatus = "idle" | "scanning" | "connecting" | "connected" | "error";
-
-/**
- * BluetoothStatus
- */
-export type BluetoothStatus = {
-  status: BleStatus;
+export type HttpError = {
   /**
-   * Device Id
+   * Description
    */
-  device_id: string | null;
-  /**
-   * Device Name
-   */
-  device_name: string | null;
-  /**
-   * Last Error
-   */
-  last_error: string | null;
-  /**
-   * Live Weight Kg
-   */
-  live_weight_kg: number | null;
-  /**
-   * Live Weight Active
-   */
-  live_weight_active: boolean;
-  /**
-   * Last Received At
-   */
-  last_received_at: string | null;
+  description: string | null;
 };
 
 /**
@@ -59,25 +33,18 @@ export type Measurement = {
    */
   measured_at: string;
   /**
-   * Weight Kg
+   * Weight
    */
-  weight_kg: number;
+  weight: number;
+  unit: MeasurementUnit;
   /**
    * Impedance Ohm
    */
   impedance_ohm: number | null;
   /**
-   * Is Final
-   */
-  is_final: boolean;
-  /**
    * Device Id
    */
   device_id: string;
-  /**
-   * Source
-   */
-  source: "advertisement" | "gatt";
   /**
    * Raw Payload Hex
    */
@@ -85,16 +52,9 @@ export type Measurement = {
 };
 
 /**
- * Status
+ * MeasurementUnit
  */
-export type Status = {
-  bluetooth: BluetoothStatus;
-  last_measurement: Measurement | null;
-  /**
-   * Server Time
-   */
-  server_time: string;
-};
+export type MeasurementUnit = "kg" | "lb";
 
 /**
  * ValidationError
@@ -124,22 +84,6 @@ export type ValidationError = {
   };
 };
 
-export type GetStatusData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: "/api/status";
-};
-
-export type GetStatusResponses = {
-  /**
-   * Successful Response
-   */
-  200: Status;
-};
-
-export type GetStatusResponse = GetStatusResponses[keyof GetStatusResponses];
-
 export type GetMeasurementsData = {
   body?: never;
   path?: never;
@@ -148,15 +92,23 @@ export type GetMeasurementsData = {
      * Limit
      */
     limit?: number;
-    /**
-     * Final Only
-     */
-    final_only?: boolean;
   };
-  url: "/api/measurements";
+  url: "/api/measurements/";
 };
 
 export type GetMeasurementsErrors = {
+  /**
+   * Unauthorized
+   */
+  401: HttpError;
+  /**
+   * Forbidden
+   */
+  403: HttpError;
+  /**
+   * Not Found
+   */
+  404: HttpError;
   /**
    * Validation Error
    */
@@ -182,6 +134,23 @@ export type GetLatestMeasurementData = {
   query?: never;
   url: "/api/measurements/latest";
 };
+
+export type GetLatestMeasurementErrors = {
+  /**
+   * Unauthorized
+   */
+  401: HttpError;
+  /**
+   * Forbidden
+   */
+  403: HttpError;
+  /**
+   * Not Found
+   */
+  404: HttpError;
+};
+
+export type GetLatestMeasurementError = GetLatestMeasurementErrors[keyof GetLatestMeasurementErrors];
 
 export type GetLatestMeasurementResponses = {
   /**

@@ -1,86 +1,50 @@
 <script setup lang="ts">
-import { type MudaComponentVariant } from "@mudakit/ui";
 import { MudaErrorBox } from "@mudakit/ui/MudaErrorBox";
 import { MudaSpinner } from "@mudakit/ui/MudaSpinner";
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 
-import { type BleStatus, getMeasurements, getStatus } from "@/api";
+import { getMeasurements } from "@/api";
 import AppHeader from "@/components/AppHeader.vue";
-import BluetoothStatusCard from "@/components/BluetoothStatusCard.vue";
 import CurrentWeightCard from "@/components/CurrentWeightCard.vue";
 import MeasurementHistoryCard from "@/components/MeasurementHistoryCard.vue";
 import UseApiState from "@/components/UseApiState.vue";
 import { useApi } from "@/composables/useApi";
-import { useServerEvents } from "@/composables/useServerEvents";
+import { type ServerSideStatusMessage, useServerEvents } from "@/composables/useServerEvents";
 
-const { dispatch, state } = useApi(() =>
-  useApi.all({
-    measurements: getMeasurements({ query: { limit: 50 }, throwOnError: true }),
-    snapshot: getStatus({ throwOnError: true }),
-  }),
-);
+const { dispatch, state } = useApi(() => getMeasurements({ query: { limit: 50 }, throwOnError: true }));
+const liveMeasurement = ref<ServerSideStatusMessage | null>(null);
 
-const refresh = async () => {
-  try {
+const serverEvents = useServerEvents(
+  (message) => {
+    liveMeasurement.value = message;
+  },
+  async () => {
     await dispatch();
-  } catch {
-    // The request state contains the error; the next server event retries the request.
-  }
-};
-
-const serverEvents = useServerEvents(() => void refresh());
+  },
+);
 
 const currentMeasurement = computed(() => {
   if (state.value.status === "idle") {
     return null;
   }
 
-  const data = state.value.status === "success" ? state.value.result : state.value.prevResult;
-  return data?.snapshot.last_measurement ?? data?.measurements[0] ?? null;
+  const measurements = state.value.status === "success" ? state.value.result : state.value.prevResult;
+  return measurements?.[0] ?? null;
 });
 
-const liveWeight = computed(() => {
-  if (state.value.status === "idle") {
-    return null;
-  }
+const liveWeight = computed(() => liveMeasurement.value?.weight ?? null);
+const currentWeight = computed(() => liveWeight.value ?? currentMeasurement.value?.weight ?? null);
+const currentUnit = computed(() => liveMeasurement.value?.unit ?? currentMeasurement.value?.unit ?? "kg");
 
-  const data = state.value.status === "success" ? state.value.result : state.value.prevResult;
-  const bluetooth = data?.snapshot.bluetooth;
-  return bluetooth?.live_weight_active ? bluetooth.live_weight_kg : null;
-});
-
-const currentWeight = computed(() => liveWeight.value ?? currentMeasurement.value?.weight_kg ?? null);
-
-const status = computed<BleStatus>(() => {
-  if (state.value.status === "idle") {
-    return "idle";
-  }
-
-  const data = state.value.status === "success" ? state.value.result : state.value.prevResult;
-
-  return data?.snapshot.bluetooth.status ?? "idle";
-});
-
-const statusVariant = computed<MudaComponentVariant>(() => {
-  const variants: Record<BleStatus, MudaComponentVariant> = {
-    idle: "secondary",
-    scanning: "info",
-    connecting: "warning",
-    connected: "success",
-    error: "danger",
-  };
-  return variants[status.value];
-});
-
-onMounted(() => {
+onMounted(async () => {
   serverEvents.start();
-  void refresh();
+  await dispatch();
 });
 </script>
 
 <template>
   <main class="mx-auto h-full w-full max-w-6xl p-6">
-    <AppHeader :status="status" :status-variant="statusVariant" />
+    <AppHeader />
 
     <UseApiState :state="state">
       <template #idle>
@@ -100,16 +64,16 @@ onMounted(() => {
       </template>
 
       <template #body="{ result }">
-        <section class="mb-6 grid gap-6 lg:grid-cols-[minmax(0,1.65fr)_minmax(18rem,1fr)]">
+        <section class="mb-6">
           <CurrentWeightCard
             :weight="currentWeight"
             :live-weight="liveWeight"
+            :unit="currentUnit"
             :measured-at="currentMeasurement?.measured_at"
           />
-          <BluetoothStatusCard :bluetooth="result.snapshot.bluetooth" />
         </section>
 
-        <MeasurementHistoryCard :measurements="result.measurements" />
+        <MeasurementHistoryCard :measurements="result" />
       </template>
     </UseApiState>
   </main>

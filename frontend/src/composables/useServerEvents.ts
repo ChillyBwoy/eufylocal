@@ -1,44 +1,69 @@
-import { onScopeDispose } from "vue";
+import { onScopeDispose, ref } from "vue";
+
+import type { MeasurementUnit } from "@/api";
 
 const REFRESH_DELAY_MS = 500;
 
-export function useServerEvents(onRefresh: () => void) {
-  let source: EventSource | null = null;
-  let refreshTimer: number | null = null;
-  let hasOpened = false;
+export interface ServerSideStatusMessage {
+  type: "status";
+  weight: number;
+  impedance_ohm: number | null;
+  unit: MeasurementUnit;
+}
+
+type ServerSideMessage = { type: "ready" } | { type: "refresh" } | ServerSideStatusMessage;
+
+export function useServerEvents(onStatus: (message: ServerSideStatusMessage) => void, onRefresh: () => Promise<void>) {
+  const source = ref<EventSource | null>(null);
+  const refreshTimer = ref<number | null>(null);
+  const hasOpened = ref(false);
 
   const scheduleRefresh = () => {
-    console.log("refresh");
-    if (refreshTimer != null) return;
+    if (refreshTimer.value != null) {
+      return;
+    }
 
-    refreshTimer = window.setTimeout(() => {
-      refreshTimer = null;
+    refreshTimer.value = window.setTimeout(() => {
+      refreshTimer.value = null;
       onRefresh();
     }, REFRESH_DELAY_MS);
   };
 
-  const start = () => {
-    if (source != null) return;
+  const handleMessage = (event: MessageEvent<string>) => {
+    const message = JSON.parse(event.data) as ServerSideMessage;
+    if (message.type === "status") {
+      onStatus(message);
+    } else if (message.type === "refresh") {
+      scheduleRefresh();
+    }
+  };
 
-    source = new EventSource("/api/events");
-    source.addEventListener("refresh", scheduleRefresh);
-    source.addEventListener("open", () => {
-      console.log("open");
-      if (hasOpened) {
-        scheduleRefresh();
-      } else {
-        hasOpened = true;
-      }
-    });
+  const handleOpen = () => {
+    if (hasOpened.value) {
+      scheduleRefresh();
+    } else {
+      hasOpened.value = true;
+    }
+  };
+
+  const start = () => {
+    if (source.value != null) return;
+
+    source.value = new EventSource("/api/sse/");
+    source.value.addEventListener("message", handleMessage);
+    source.value.addEventListener("open", handleOpen);
   };
 
   const stop = () => {
-    source?.close();
-    source = null;
-    hasOpened = false;
-    if (refreshTimer != null) {
-      window.clearTimeout(refreshTimer);
-      refreshTimer = null;
+    source.value?.removeEventListener("open", handleOpen);
+    source.value?.removeEventListener("message", handleMessage);
+    source.value?.close();
+    source.value = null;
+    hasOpened.value = false;
+
+    if (refreshTimer.value != null) {
+      window.clearTimeout(refreshTimer.value);
+      refreshTimer.value = null;
     }
   };
 

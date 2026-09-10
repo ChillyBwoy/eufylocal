@@ -4,12 +4,11 @@ import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape
 import { client } from "./client.gen";
 import type {
   GetLatestMeasurementData,
+  GetLatestMeasurementErrors,
   GetLatestMeasurementResponses,
   GetMeasurementsData,
   GetMeasurementsErrors,
   GetMeasurementsResponses,
-  GetStatusData,
-  GetStatusResponses,
 } from "./types.gen";
 
 export type Options<
@@ -31,21 +30,13 @@ export type Options<
 };
 
 /**
- * Status
- */
-export const getStatus = <ThrowOnError extends boolean = false>(
-  options?: Options<GetStatusData, ThrowOnError>,
-): RequestResult<GetStatusResponses, unknown, ThrowOnError> =>
-  (options?.client ?? client).get<GetStatusResponses, unknown, ThrowOnError>({ url: "/api/status", ...options });
-
-/**
  * Measurements
  */
 export const getMeasurements = <ThrowOnError extends boolean = false>(
   options?: Options<GetMeasurementsData, ThrowOnError>,
 ): RequestResult<GetMeasurementsResponses, GetMeasurementsErrors, ThrowOnError> =>
   (options?.client ?? client).get<GetMeasurementsResponses, GetMeasurementsErrors, ThrowOnError>({
-    url: "/api/measurements",
+    url: "/api/measurements/",
     ...options,
   });
 
@@ -54,8 +45,8 @@ export const getMeasurements = <ThrowOnError extends boolean = false>(
  */
 export const getLatestMeasurement = <ThrowOnError extends boolean = false>(
   options?: Options<GetLatestMeasurementData, ThrowOnError>,
-): RequestResult<GetLatestMeasurementResponses, unknown, ThrowOnError> =>
-  (options?.client ?? client).get<GetLatestMeasurementResponses, unknown, ThrowOnError>({
+): RequestResult<GetLatestMeasurementResponses, GetLatestMeasurementErrors, ThrowOnError> =>
+  (options?.client ?? client).get<GetLatestMeasurementResponses, GetLatestMeasurementErrors, ThrowOnError>({
     url: "/api/measurements/latest",
     ...options,
   });

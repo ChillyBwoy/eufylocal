@@ -2,6 +2,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from eufylocal.schemas.measurement import MeasurementUnit
+
 
 class ServerSideMessageBase(BaseModel): ...
 
@@ -16,6 +18,10 @@ class ServerSideRefreshMessage(ServerSideMessageBase):
 
 class ServerSideStatusMessage(ServerSideMessageBase):
     type: Literal["status"] = Field(default="status")
+
+    weight: float
+    impedance_ohm: float | None
+    unit: MeasurementUnit
 
 
 type ServerSideMessage = ServerSideReadyMessage | ServerSideRefreshMessage | ServerSideStatusMessage

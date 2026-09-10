@@ -45,7 +45,7 @@ const groupedMeasurement = computed(() => {
             <MudaTableRow v-for="measurement in measurements" :key="measurement.measured_at + measurement.device_id">
               <MudaTableCell class="w-[15%] whitespace-nowrap">{{ formatTime(measurement.measured_at) }}</MudaTableCell>
               <MudaTableCell class="font-mono font-semibold tabular-nums">
-                {{ measurement.weight_kg.toFixed(2) }} kg
+                {{ measurement.weight.toFixed(2) }} {{ measurement.unit }}
               </MudaTableCell>
               <MudaTableCell class="font-mono tabular-nums">
                 {{ measurement.impedance_ohm === null ? "--" : `${measurement.impedance_ohm.toFixed(1)} Ω` }}
