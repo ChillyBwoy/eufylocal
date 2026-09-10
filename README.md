@@ -1,16 +1,20 @@
 # eufylocal
 
-A local Bluetooth LE bridge for the **eufy Smart Scale C1 (T9146)**.
+A web app for the **Eufy Smart Scale C1 (T9146)**
+
+
+<img src="doc/images/001.png" width="49%" />
+<img src="doc/images/002.png" width="49%" />
 
 ## Requirements
 
 * Python 3.14
+* [uv](https://docs.astral.sh/uv/)
 * Node.js and npm
-* PostgreSQL 16 (a Compose service is included for local development)
+* PostgreSQL 16
 
 ## Installation
 
-Using uv:
 
 ```bash
 make install
@@ -56,10 +60,6 @@ make build
 
 The Vite output is written to `eufylocal/static/` and packaged into the Python wheel.
 
-To access the interface from a phone on the local network, set
-`EUFYLOCAL_HOST=0.0.0.0` in `.env`. Then open
-`http://<mac-ip-address>:8000` from the phone.
-
 ## Configuration
 
 Settings are loaded from environment variables and the `.env` file in the working directory.
@@ -82,9 +82,6 @@ Apply Alembic migrations before running the application:
 
 ```bash
 make db-up
-make db-current
-make db-down
-make db-rev MESSAGE="add a column"
 ```
 
 All SQLAlchemy and Alembic files are contained in `eufylocal/db/`.
