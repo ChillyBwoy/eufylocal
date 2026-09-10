@@ -5,28 +5,7 @@
     "version": "0.1.0"
   },
   "paths": {
-    "/api/status": {
-      "get": {
-        "tags": [
-          "info"
-        ],
-        "summary": "Status",
-        "operationId": "get_status",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Status"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/measurements": {
+    "/api/measurements/": {
       "get": {
         "tags": [
           "measurements"
@@ -61,6 +40,36 @@
                 }
               }
             }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            },
+            "description": "Not Found"
           },
           "422": {
             "description": "Validation Error",
@@ -100,6 +109,36 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
           }
         }
       }
@@ -107,23 +146,9 @@
   },
   "components": {
     "schemas": {
-      "BLEStatus": {
-        "type": "string",
-        "enum": [
-          "idle",
-          "scanning",
-          "connecting",
-          "connected",
-          "error"
-        ],
-        "title": "BLEStatus"
-      },
-      "BluetoothStatus": {
+      "HTTPError": {
         "properties": {
-          "status": {
-            "$ref": "#/components/schemas/BLEStatus"
-          },
-          "device_id": {
+          "description": {
             "anyOf": [
               {
                 "type": "string"
@@ -132,69 +157,14 @@
                 "type": "null"
               }
             ],
-            "title": "Device Id"
-          },
-          "device_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Device Name"
-          },
-          "last_error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Error"
-          },
-          "live_weight_kg": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Live Weight Kg"
-          },
-          "live_weight_active": {
-            "type": "boolean",
-            "title": "Live Weight Active"
-          },
-          "last_received_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Received At"
+            "title": "Description"
           }
         },
         "type": "object",
         "required": [
-          "status",
-          "device_id",
-          "device_name",
-          "last_error",
-          "live_weight_kg",
-          "live_weight_active",
-          "last_received_at"
+          "description"
         ],
-        "title": "BluetoothStatus"
+        "title": "HTTPError"
       },
       "HTTPValidationError": {
         "properties": {
@@ -211,14 +181,21 @@
       },
       "Measurement": {
         "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
           "measured_at": {
             "type": "string",
             "format": "date-time",
             "title": "Measured At"
           },
-          "weight_kg": {
+          "weight": {
             "type": "number",
-            "title": "Weight Kg"
+            "title": "Weight"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/MeasurementUnit"
           },
           "impedance_ohm": {
             "anyOf": [
@@ -231,62 +208,29 @@
             ],
             "title": "Impedance Ohm"
           },
-          "device_id": {
+          "raw_data": {
             "type": "string",
-            "title": "Device Id"
-          },
-          "source": {
-            "type": "string",
-            "enum": [
-              "advertisement",
-              "gatt"
-            ],
-            "title": "Source"
-          },
-          "raw_payload_hex": {
-            "type": "string",
-            "title": "Raw Payload Hex"
+            "title": "Raw Data"
           }
         },
         "type": "object",
         "required": [
+          "id",
           "measured_at",
-          "weight_kg",
+          "weight",
+          "unit",
           "impedance_ohm",
-          "device_id",
-          "source",
-          "raw_payload_hex"
+          "raw_data"
         ],
         "title": "Measurement"
       },
-      "Status": {
-        "properties": {
-          "bluetooth": {
-            "$ref": "#/components/schemas/BluetoothStatus"
-          },
-          "last_measurement": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Measurement"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "server_time": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Server Time"
-          }
-        },
-        "type": "object",
-        "required": [
-          "bluetooth",
-          "last_measurement",
-          "server_time"
+      "MeasurementUnit": {
+        "type": "string",
+        "enum": [
+          "kg",
+          "lb"
         ],
-        "title": "Status"
+        "title": "MeasurementUnit"
       },
       "ValidationError": {
         "properties": {

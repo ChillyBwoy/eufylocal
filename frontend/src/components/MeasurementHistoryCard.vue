@@ -29,33 +29,43 @@ const groupedMeasurement = computed(() => {
 </script>
 
 <template>
-  <div v-if="measurements.length" class="flex flex-col gap-4">
-    <template v-for="([date, measurements], idx) in groupedMeasurement" :key="date">
-      <h3 class="px-4 font-mono text-xl font-semibold">{{ date }}</h3>
-      <MudaCard class="flex flex-col gap-4 overflow-x-auto">
-        <MudaTable>
-          <template v-if="idx === 0" #head>
-            <MudaTableRow>
-              <MudaTableHead class="text-left">Time</MudaTableHead>
-              <MudaTableHead class="text-left">Weight</MudaTableHead>
-              <MudaTableHead class="text-left">Impedance</MudaTableHead>
+  <MudaCard v-if="measurements.length" class="relative">
+    <div class="muda:no-scrollbar scroll-container-v-foreground absolute inset-6">
+      <MudaTable sticky-header>
+        <template #head>
+          <MudaTableRow>
+            <MudaTableHead class="w-[15%] text-left">Time</MudaTableHead>
+            <MudaTableHead class="w-[30%] text-left">Weight</MudaTableHead>
+            <MudaTableHead class="text-left">Impedance</MudaTableHead>
+          </MudaTableRow>
+        </template>
+        <template #body>
+          <template v-for="[date, measurements] in groupedMeasurement" :key="date">
+            <MudaTableRow class="border-b-0!">
+              <MudaTableCell colspan="3">
+                <h3 class="font-mono text-sm">{{ date }}</h3>
+              </MudaTableCell>
             </MudaTableRow>
-          </template>
-          <template #body>
-            <MudaTableRow v-for="measurement in measurements" :key="measurement.measured_at + measurement.device_id">
-              <MudaTableCell class="w-[15%] whitespace-nowrap">{{ formatTime(measurement.measured_at) }}</MudaTableCell>
+            <MudaTableRow
+              v-for="(measurement, i) in measurements"
+              :key="measurement.id"
+              :class="{
+                'border-b-0!': i < measurements.length - 1,
+              }"
+            >
+              <MudaTableCell class="pl-4! whitespace-nowrap">{{ formatTime(measurement.measured_at) }}</MudaTableCell>
               <MudaTableCell class="font-mono font-semibold tabular-nums">
-                {{ measurement.weight_kg.toFixed(2) }} kg
+                {{ measurement.weight.toFixed(2) }} {{ measurement.unit }}
               </MudaTableCell>
               <MudaTableCell class="font-mono tabular-nums">
                 {{ measurement.impedance_ohm === null ? "--" : `${measurement.impedance_ohm.toFixed(1)} Ω` }}
               </MudaTableCell>
             </MudaTableRow>
           </template>
-        </MudaTable>
-      </MudaCard>
-    </template>
-  </div>
+        </template>
+      </MudaTable>
+    </div>
+  </MudaCard>
 
   <MudaCard v-else class="border-muda-secondary-light grid min-h-48 place-items-center border-t text-center">
     <div>

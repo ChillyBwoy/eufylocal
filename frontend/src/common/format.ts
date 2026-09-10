@@ -4,7 +4,7 @@ export function formatWeight(value: number | null): string {
 
 export function formatTime(value: string | null | undefined): string {
   return value != null
-    ? new Intl.DateTimeFormat(undefined, { timeStyle: "short" }).format(new Date(value))
+    ? new Intl.DateTimeFormat(undefined, { timeStyle: "short", hour12: false }).format(new Date(value))
     : "No measurement yet";
 }
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from eufylocal.schemas.frame import ParsedFrame
+from eufylocal.schemas.measurement import MeasurementUnit
 
 FRAME_LENGTH = 11
 FRAME_PREFIX = 0xCF
@@ -10,15 +11,6 @@ STATUS_WEIGHT_LIMIT_EXCEEDED = 0x02
 
 PLAUSIBLE_WEIGHT_KG = (1.0, 200.0)
 PLAUSIBLE_IMPEDANCE_OHM = (100.0, 2000.0)
-
-
-@dataclass(frozen=True)
-class ParsedFrame:
-    weight_kg: float
-    impedance_ohm: float | None
-    is_final: bool
-    weight_limit_exceeded: bool
-    unit: str
 
 
 def compute_checksum(data: bytes | bytearray) -> int:
@@ -35,6 +27,7 @@ def validate_checksum(data: bytes | bytearray) -> bool:
 def parse_frame(frame: bytes | bytearray) -> ParsedFrame | None:
     if len(frame) != FRAME_LENGTH or frame[0] != FRAME_PREFIX:
         return None
+
     if not validate_checksum(frame):
         return None
 
@@ -54,14 +47,15 @@ def parse_frame(frame: bytes | bytearray) -> ParsedFrame | None:
         if not (PLAUSIBLE_IMPEDANCE_OHM[0] <= impedance_ohm <= PLAUSIBLE_IMPEDANCE_OHM[1]):
             impedance_ohm = None
 
-    unit = "lb" if frame[8] & 0x01 else "kg"
+    unit = MeasurementUnit.LB if frame[8] & 0x01 else MeasurementUnit.KG
 
     return ParsedFrame(
-        weight_kg=weight_kg,
-        impedance_ohm=impedance_ohm,
-        is_final=is_final,
+        weight=round(weight_kg, 2),
+        impedance_ohm=round(impedance_ohm) if impedance_ohm is not None else None,
         weight_limit_exceeded=weight_limit_exceeded,
         unit=unit,
+        is_final=is_final,
+        raw=frame.hex(),
     )
 
 

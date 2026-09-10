@@ -1,112 +1,113 @@
 from __future__ import annotations
 
-import argparse
 import asyncio
 import logging
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
+from types import FrameType
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 
-from eufylocal.ble_collector import scan_and_print
 from eufylocal.config import settings
-from eufylocal.db import MeasurementRepository
-from eufylocal.db import session as db_session
-from eufylocal.db.migration import upgrade_database
-from eufylocal.routes.events import router as events_router
-from eufylocal.routes.info import router as info_router
-from eufylocal.routes.measurements import router as measurements_router
-from eufylocal.runtime import Runtime
+from eufylocal.db.repositories import MeasurementRepository
+from eufylocal.db.session import AsyncSessionLocal
+from eufylocal.router import api_router
+from eufylocal.scanner import scan
+from eufylocal.schemas.sse import ServerSideRefreshMessage, ServerSideStatusMessage
+from eufylocal.sse_manager import sse_manager
 
 STATIC_DIR = Path(__file__).parent / "static"
+
+logger = logging.getLogger(__name__)
+
+
+async def consume_frames(measurement_repo: MeasurementRepository) -> None:
+    waiting_for_next_weighing = False
+
+    async for frame in scan():
+        if waiting_for_next_weighing:
+            if frame.is_final:
+                continue
+            waiting_for_next_weighing = False
+
+        logger.info(
+            "weight=%.2f unit=%s impedance=%s weight_limit_exceeded=%s is_final=%s raw=%s",
+            frame.weight,
+            frame.unit,
+            f"{frame.impedance_ohm:.2f}" if frame.impedance_ohm is not None else "n/a",
+            frame.weight_limit_exceeded,
+            frame.is_final,
+            frame.raw,
+        )
+
+        message = ServerSideStatusMessage(
+            impedance_ohm=frame.impedance_ohm,
+            weight=frame.weight,
+            unit=frame.unit,
+        )
+
+        sse_manager.publish(message)
+
+        waiting_for_next_weighing = frame.is_final
+        if frame.is_final:
+            await measurement_repo.insert(
+                weight=frame.weight,
+                unit=frame.unit,
+                impedance_ohm=frame.impedance_ohm,
+                raw_data=frame.raw,
+            )
+            sse_manager.publish(ServerSideRefreshMessage())
 
 
 def custom_generate_unique_id(route: APIRoute):
     return f"{route.tags[0]}-{route.name}"
 
 
-def _configure_logging(level: str) -> None:
-    logging.basicConfig(
-        level=getattr(logging, level.upper(), logging.INFO),
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
-
-
 @asynccontextmanager
-async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-    if settings.auto_migrate:
-        await asyncio.to_thread(upgrade_database, settings.db_url)
-    try:
-        async with db_session.AsyncSessionLocal() as writer_session:
-            runtime = Runtime(measurement_repo=MeasurementRepository(writer_session))
-            application.state.runtime = runtime
-            collector_task = (
-                asyncio.create_task(runtime.collector.run()) if settings.ble_enabled else None
-            )
-            try:
-                yield
-            finally:
-                if collector_task is not None:
-                    await runtime.collector.stop()
-                    collector_task.cancel()
-                    await asyncio.gather(collector_task, return_exceptions=True)
-                runtime.close()
-    finally:
-        await db_session.engine.dispose()
+async def lifespan(_application: FastAPI) -> AsyncGenerator[None]:
+    async with AsyncSessionLocal() as db:
+        measurement_repo = MeasurementRepository(db)
+        collector_task = asyncio.create_task(consume_frames(measurement_repo=measurement_repo))
+        try:
+            yield
+        finally:
+            collector_task.cancel()
+            await asyncio.gather(collector_task, return_exceptions=True)
 
 
 app = FastAPI(
     title="eufylocal",
+    debug=settings.debug,
     lifespan=lifespan,
     generate_unique_id_function=custom_generate_unique_id,
 )
-app.include_router(info_router)
-app.include_router(measurements_router)
-app.include_router(events_router)
-
+app.include_router(api_router)
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="frontend")
 
 
-def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="eufylocal",
-        description="Local BLE bridge for the eufy Smart Scale C1 (T9146)",
+class Server(uvicorn.Server):
+    def handle_exit(self, sig: int, frame: FrameType | None) -> None:
+        sse_manager.close()
+        super().handle_exit(sig, frame)
+
+
+def run() -> None:
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
     )
-    parser.add_argument("--log-level", help="override logging level")
-    subparsers = parser.add_subparsers(dest="command")
 
-    serve = subparsers.add_parser("serve", help="run the local server (default)")
-    serve.add_argument("--host", help="bind address (default 127.0.0.1)")
-    serve.add_argument("--port", type=int, help="bind port (default 8000)")
-
-    scan = subparsers.add_parser("scan", help="scan BLE devices once and exit")
-    scan.add_argument("--timeout", type=float, default=10.0)
-
-    dump = subparsers.add_parser("dump", help="continuously print raw BLE payloads (diagnostics)")
-    dump.add_argument("--timeout", type=float, default=30.0)
-    return parser
-
-
-def run(argv: list[str] | None = None) -> None:
-    args = _parser().parse_args(argv)
-    _configure_logging(args.log_level or settings.log_level)
-    command = args.command or "serve"
-
-    if command == "scan":
-        asyncio.run(scan_and_print(args.timeout))
-        return
-    if command == "dump":
-        asyncio.run(scan_and_print(args.timeout, repeat_payloads=True))
-        return
-
-    uvicorn.run(
+    config = uvicorn.Config(
         app,
-        host=args.host or settings.host,
-        port=args.port or settings.port,
-        log_level=(args.log_level or settings.log_level).lower(),
+        host=settings.host,
+        port=settings.port,
+        log_level=logging.INFO,
+        timeout_graceful_shutdown=1,
     )
+
+    with suppress(KeyboardInterrupt):
+        Server(config).run()
