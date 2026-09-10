@@ -30,7 +30,7 @@ class MeasurementModel(BaseModel):
     unit: Mapped[MeasurementUnit] = mapped_column(Enum(MeasurementUnit), nullable=False)
     impedance_ohm: Mapped[float | None] = mapped_column(Float)
     device_id: Mapped[str] = mapped_column(Text, nullable=False)
-    raw_payload_hex: Mapped[str] = mapped_column(Text, nullable=False)
+    raw_data: Mapped[str] = mapped_column(Text, nullable=False)
 
     __table_args__ = (
         CheckConstraint("weight > 0", name="ck_measurements_weight_positive"),

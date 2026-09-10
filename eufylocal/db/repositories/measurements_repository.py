@@ -1,14 +1,32 @@
+from datetime import UTC, datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from eufylocal.db.models import MeasurementModel
+from eufylocal.schemas.measurement import MeasurementUnit
 
 
 class MeasurementRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def insert(self, measurement: MeasurementModel) -> None:
+    async def insert(
+        self,
+        weight: float,
+        unit: MeasurementUnit,
+        impedance_ohm: float,
+        device_id: str,
+        raw_data: str,
+    ) -> None:
+        measurement = MeasurementModel(
+            measured_at=datetime.now(UTC),
+            weight=weight,
+            unit=unit,
+            impedance_ohm=impedance_ohm,
+            device_id=device_id,
+            raw_data=raw_data,
+        )
         self.session.add(measurement)
 
         try:

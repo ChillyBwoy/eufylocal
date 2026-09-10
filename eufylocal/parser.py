@@ -50,11 +50,12 @@ def parse_frame(frame: bytes | bytearray) -> ParsedFrame | None:
     unit = MeasurementUnit.LB if frame[8] & 0x01 else MeasurementUnit.KG
 
     return ParsedFrame(
-        weight=weight_kg,
-        impedance_ohm=impedance_ohm,
+        weight=round(weight_kg, 2),
+        impedance_ohm=round(impedance_ohm) if impedance_ohm is not None else None,
         weight_limit_exceeded=weight_limit_exceeded,
         unit=unit,
         is_final=is_final,
+        raw=frame.hex(),
     )
 
 

@@ -8,17 +8,16 @@ internet access, or third-party services.
 
 ## Features
 
-* Scans for BLE devices and discovers scales named `eufy T9146`.
-* Reads weight and, when available, impedance from advertising packets without connecting,
-  or through GATT (`0xFFF0` with notifications on `0xFFF4`).
-* Stores the UTC timestamp, weight in kilograms, impedance, device identifier, data source,
-  and raw hexadecimal payload in PostgreSQL through the SQLAlchemy 2.x async engine.
-* Provides a local web interface and HTTP API.
-* Never sends the history-clear command (`F2 01`) or writes any other data to the scale.
+* Passively reads T9146 advertising packets without connecting to the scale.
+* Identifies the model marker, validates the frame checksum, and parses weight and impedance.
+* Prints every parsed frame in the server terminal.
+* Publishes an SSE status message for every parsed frame.
+* Provides a local web interface and an HTTP API backed by PostgreSQL.
 
 ## Requirements
 
 * Python 3.14
+* Node.js and npm
 * macOS with Bluetooth LE
 * PostgreSQL 16 (a Compose service is included for local development)
 
@@ -61,7 +60,7 @@ If the prompt does not appear or access was previously denied:
 ## Running The Server
 
 ```bash
-uv run eufylocal serve
+uv run eufylocal
 # or
 make run
 ```
@@ -86,35 +85,15 @@ make build
 
 The Vite output is written to `eufylocal/static/` and packaged into the Python wheel.
 
-To access the interface from a phone on the local network:
-
-```bash
-uv run eufylocal serve --host 0.0.0.0
-# or
-make run HOST=0.0.0.0
-```
-
-You can also set `EUFYLOCAL_HOST=0.0.0.0` in `.env`. Then open
+To access the interface from a phone on the local network, set
+`EUFYLOCAL_HOST=0.0.0.0` in `.env`. Then open
 `http://<mac-ip-address>:8000` from the phone.
 
-## Device Discovery
-
-Discover the scale identifier:
-
-```bash
-uv run eufylocal scan
-# or
-make scan TIMEOUT=10
-```
-
-
-Create the local configuration after discovering the scale:
+Create the local configuration:
 
 ```bash
 cp .env.example .env
 ```
-
-Set `EUFYLOCAL_DEVICE_IDENTIFIER` to the discovered UUID.
 
 ## Configuration
 
@@ -122,9 +101,7 @@ Settings are loaded from environment variables and the `.env` file in the workin
 Environment variables take precedence over values in `.env`.
 
 ```dotenv
-EUFYLOCAL_DEVICE_IDENTIFIER=AAAA1111-...
-EUFYLOCAL_TRANSPORT=advertisement
-EUFYLOCAL_AUTO_MIGRATE=true
+EUFYLOCAL_DEBUG=false
 EUFYLOCAL_HOST=127.0.0.1
 EUFYLOCAL_PORT=8000
 EUFYLOCAL_DB_HOST=127.0.0.1
@@ -132,16 +109,14 @@ EUFYLOCAL_DB_PORT=5432
 EUFYLOCAL_DB_NAME=eufylocal
 EUFYLOCAL_DB_USER=eufylocal
 EUFYLOCAL_DB_PASSWORD=eufylocal
-EUFYLOCAL_LOG_LEVEL=INFO
 ```
 
-Supported transports are `advertisement`, `gatt`, and `both`. Advertising is the recommended
-default because T9146 broadcasts measurements without requiring a connection.
+The scanner uses advertising packets only. It accepts packets ending in the T9146 model marker
+`0x9146` and yields only frames accepted by the parser.
 
 ## Database Migrations
 
-Alembic migrations are applied automatically at startup when `EUFYLOCAL_AUTO_MIGRATE=true`,
-which is the default. They can also be managed explicitly:
+Apply Alembic migrations before running the application:
 
 ```bash
 make db-up
@@ -151,8 +126,7 @@ make db-rev MESSAGE="add a column"
 ```
 
 All SQLAlchemy and Alembic files are contained in `eufylocal/db/`. The initial migration creates
-the append-only `measurements` table and indexes for complete and final-only timelines in
-PostgreSQL. Existing SQLite databases are not migrated.
+the `measurements` table and its descending timestamp index in PostgreSQL.
 
 Generate 3–4 development measurements for the last week:
 
@@ -166,11 +140,9 @@ without deleting real measurements.
 
 ## HTTP API
 
-* `GET /api/status` returns Bluetooth status, live weight, and the latest measurement.
-* `GET /api/measurements?limit=50` returns final measurements in descending timestamp order.
-* `GET /api/measurements?limit=50&final_only=false` returns every stored BLE frame.
-* `GET /api/measurements/latest` returns the latest final measurement or `null`.
-* `GET /api/events` streams SSE notifications when the REST data should be refreshed.
+* `GET /api/measurements/?limit=50` returns measurements in descending timestamp order.
+* `GET /api/measurements/latest` returns the latest measurement or `null`.
+* `GET /api/sse/` streams a ready message followed by a status message for each parsed frame.
 
 ## T9146 Protocol
 
@@ -185,12 +157,9 @@ A measurement frame is 11 bytes and starts with `CF`:
 | 9 | Status: `0x00` is stable, `0x02` means the weight limit was exceeded |
 | 10 | XOR checksum of bytes 0-9 |
 
-Advertising manufacturer data has this layout:
-`[6-byte MAC][11-byte frame][1-byte battery][0x9146 model]`.
-
-Weight is always transmitted in kilograms, regardless of the scale's display unit. Every valid
-frame is stored without deduplication. Intermediate and final measurements are distinguished by
-the `is_final` field; the HTTP history returns only final measurements by default.
+Bleak exposes the manufacturer identifier separately from its data. The data ends with the
+`0x9146` model marker and contains the 11-byte frame. Weight is decoded from the frame and `unit`
+contains the display unit (`kg` or `lb`).
 
 ## Why Not `eufylife-ble-client`
 
@@ -210,9 +179,3 @@ make check
 ```
 
 Parser tests use previously captured real T9146 BLE payloads.
-
-## macOS Device Identifiers
-
-macOS does not expose BLE MAC addresses to applications. CoreBluetooth provides a device UUID
-instead, so `EUFYLOCAL_DEVICE_IDENTIFIER` must contain that UUID rather than a MAC address. The
-scale's MAC address is also embedded in manufacturer data and is logged for diagnostics.

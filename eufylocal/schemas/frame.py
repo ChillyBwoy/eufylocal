@@ -10,3 +10,4 @@ class ParsedFrame:
     weight_limit_exceeded: bool
     unit: MeasurementUnit
     is_final: bool
+    raw: str

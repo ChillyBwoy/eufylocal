@@ -1,8 +1,8 @@
 """create measurements table
 
-Revision ID: d09d53580c5b
+Revision ID: fc8a59609b47
 Revises:
-Create Date: 2026-09-10 21:50:19.768281
+Create Date: 2026-09-10 22:21:14.025148
 """
 
 from collections.abc import Sequence
@@ -10,7 +10,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "d09d53580c5b"
+revision: str = "fc8a59609b47"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -26,7 +26,7 @@ def upgrade() -> None:
         sa.Column("unit", sa.Enum("KG", "LB", name="measurementunit"), nullable=False),
         sa.Column("impedance_ohm", sa.Float(), nullable=True),
         sa.Column("device_id", sa.Text(), nullable=False),
-        sa.Column("raw_payload_hex", sa.Text(), nullable=False),
+        sa.Column("raw_data", sa.Text(), nullable=False),
         sa.CheckConstraint(
             "impedance_ohm IS NULL OR impedance_ohm > 0", name="ck_measurements_impedance_positive"
         ),
