@@ -3,6 +3,9 @@
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from "./client";
 import { client } from "./client.gen";
 import type {
+  DeleteMeasurementData,
+  DeleteMeasurementErrors,
+  DeleteMeasurementResponses,
   GetLatestMeasurementData,
   GetLatestMeasurementErrors,
   GetLatestMeasurementResponses,
@@ -48,5 +51,16 @@ export const getLatestMeasurement = <ThrowOnError extends boolean = false>(
 ): RequestResult<GetLatestMeasurementResponses, GetLatestMeasurementErrors, ThrowOnError> =>
   (options?.client ?? client).get<GetLatestMeasurementResponses, GetLatestMeasurementErrors, ThrowOnError>({
     url: "/api/measurements/latest",
+    ...options,
+  });
+
+/**
+ * Delete Measurement
+ */
+export const deleteMeasurement = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteMeasurementData, ThrowOnError>,
+): RequestResult<DeleteMeasurementResponses, DeleteMeasurementErrors, ThrowOnError> =>
+  (options.client ?? client).delete<DeleteMeasurementResponses, DeleteMeasurementErrors, ThrowOnError>({
+    url: "/api/measurements/{measurement_id}",
     ...options,
   });

@@ -2,14 +2,15 @@ export function formatWeight(value: number | null): string {
   return value === null ? "--" : value.toFixed(2);
 }
 
-export function formatTime(value: string | null | undefined): string {
-  return value != null
-    ? new Intl.DateTimeFormat(undefined, { timeStyle: "short", hour12: false }).format(new Date(value))
-    : "No measurement yet";
-}
+export function formatDateTime(value: string, format: "datetime" | "date" | "time"): string {
+  const date = new Date(value);
 
-export function formatDateTime(value: string | null | undefined): string {
-  return value != null
-    ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
-    : "No measurement yet";
+  switch (format) {
+    case "date":
+      return new Intl.DateTimeFormat(undefined, { dateStyle: "short" }).format(date);
+    case "datetime":
+      return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+    case "time":
+      return new Intl.DateTimeFormat(undefined, { timeStyle: "short", hour12: false }).format(date);
+  }
 }

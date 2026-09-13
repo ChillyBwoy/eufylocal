@@ -7,6 +7,7 @@ import { getMeasurements } from "@/api";
 import AppHeader from "@/components/AppHeader.vue";
 import CurrentWeightCard from "@/components/CurrentWeightCard.vue";
 import MeasurementHistoryCard from "@/components/MeasurementHistoryCard.vue";
+import MeasurementHistoryChart from "@/components/MeasurementHistoryChart.vue";
 import UseApiState from "@/components/UseApiState.vue";
 import { useApi } from "@/composables/useApi";
 import { type ServerSideStatusMessage, useServerEvents } from "@/composables/useServerEvents";
@@ -65,14 +66,17 @@ onMounted(async () => {
 
       <template #body="{ result }">
         <div class="grid h-full grid-rows-[auto_1fr] gap-4">
-          <CurrentWeightCard
-            :weight="currentWeight"
-            :live-weight="liveWeight"
-            :unit="currentUnit"
-            :measured-at="currentMeasurement?.measured_at"
-          />
+          <div class="grid grid-cols-[auto_2fr] gap-4">
+            <CurrentWeightCard
+              :weight="currentWeight"
+              :live-weight="liveWeight"
+              :unit="currentUnit"
+              :measured-at="currentMeasurement?.measured_at ?? null"
+            />
+            <MeasurementHistoryChart :measurements="result" />
+          </div>
 
-          <MeasurementHistoryCard :measurements="result" class="h-full" />
+          <MeasurementHistoryCard :measurements="result" class="h-full" @updated="() => void dispatch()" />
         </div>
       </template>
     </UseApiState>

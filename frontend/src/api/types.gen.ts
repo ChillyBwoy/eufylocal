@@ -162,3 +162,45 @@ export type GetLatestMeasurementResponses = {
 };
 
 export type GetLatestMeasurementResponse = GetLatestMeasurementResponses[keyof GetLatestMeasurementResponses];
+
+export type DeleteMeasurementData = {
+  body?: never;
+  path: {
+    /**
+     * Measurement Id
+     */
+    measurement_id: number;
+  };
+  query?: never;
+  url: "/api/measurements/{measurement_id}";
+};
+
+export type DeleteMeasurementErrors = {
+  /**
+   * Unauthorized
+   */
+  401: HttpError;
+  /**
+   * Forbidden
+   */
+  403: HttpError;
+  /**
+   * Not Found
+   */
+  404: HttpError;
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DeleteMeasurementError = DeleteMeasurementErrors[keyof DeleteMeasurementErrors];
+
+export type DeleteMeasurementResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type DeleteMeasurementResponse = DeleteMeasurementResponses[keyof DeleteMeasurementResponses];

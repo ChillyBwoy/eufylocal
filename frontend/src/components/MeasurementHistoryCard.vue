@@ -1,14 +1,23 @@
 <script setup lang="ts">
+import { MudaButton, MudaIcon } from "@mudakit/ui";
 import { MudaCard } from "@mudakit/ui/MudaCard";
 import { MudaTable, MudaTableCell, MudaTableHead, MudaTableRow } from "@mudakit/ui/MudaTable";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 
 import { type Measurement } from "@/api";
-import { formatTime } from "@/common/format";
+import { formatDateTime } from "@/common/format";
+
+import MeasureDeleteDialog from "./MeasureDeleteDialog.vue";
 
 const props = defineProps<{
   measurements: Measurement[];
 }>();
+
+const emit = defineEmits<{
+  (e: "updated"): void;
+}>();
+
+const measurementToDelete = ref<Measurement | null>(null);
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
@@ -37,6 +46,7 @@ const groupedMeasurement = computed(() => {
             <MudaTableHead class="w-[15%] text-left">Time</MudaTableHead>
             <MudaTableHead class="w-[30%] text-left">Weight</MudaTableHead>
             <MudaTableHead class="text-left">Impedance</MudaTableHead>
+            <MudaTableHead class="w-20" />
           </MudaTableRow>
         </template>
         <template #body>
@@ -49,21 +59,39 @@ const groupedMeasurement = computed(() => {
             <MudaTableRow
               v-for="(measurement, i) in measurements"
               :key="measurement.id"
-              :class="{
-                'border-b-0!': i < measurements.length - 1,
-              }"
+              :class="[
+                'group',
+                {
+                  'border-b-0!': i < measurements.length - 1,
+                },
+              ]"
             >
-              <MudaTableCell class="pl-4! whitespace-nowrap">{{ formatTime(measurement.measured_at) }}</MudaTableCell>
+              <MudaTableCell class="pl-4! whitespace-nowrap">
+                {{ formatDateTime(measurement.measured_at, "time") }}
+              </MudaTableCell>
               <MudaTableCell class="font-mono font-semibold tabular-nums">
                 {{ measurement.weight.toFixed(2) }} {{ measurement.unit }}
               </MudaTableCell>
               <MudaTableCell class="font-mono tabular-nums">
                 {{ measurement.impedance_ohm === null ? "--" : `${measurement.impedance_ohm.toFixed(1)} Ω` }}
               </MudaTableCell>
+              <MudaTableCell>
+                <div class="flex items-center justify-end">
+                  <MudaButton
+                    variant="danger"
+                    size="small"
+                    class="invisible group-hover:visible"
+                    @click="measurementToDelete = measurement"
+                  >
+                    <MudaIcon icon="delete:outlined" />
+                  </MudaButton>
+                </div>
+              </MudaTableCell>
             </MudaTableRow>
           </template>
         </template>
       </MudaTable>
+      <MeasureDeleteDialog :model-value="measurementToDelete" @deleted="emit('updated')" />
     </div>
   </MudaCard>
 
