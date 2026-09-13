@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query, Response, status
 
 from eufylocal.di import MeasurementRepositoryDep
 from eufylocal.schemas.measurement import Measurement
@@ -21,3 +21,18 @@ async def latest_measurement(
 ) -> Measurement | None:
     latest = await repository.latest()
     return Measurement.model_validate(latest) if latest else None
+
+
+@router.delete(
+    "/{measurement_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    operation_id="delete_measurement",
+)
+async def delete_measurement(
+    measurement_id: int,
+    repository: MeasurementRepositoryDep,
+) -> Response:
+    if not await repository.delete(measurement_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Measurement not found")
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

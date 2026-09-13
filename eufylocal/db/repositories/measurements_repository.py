@@ -51,3 +51,16 @@ class MeasurementRepository:
             MeasurementModel.id.desc(),
         ).limit(1)
         return await self.session.scalar(stmt)
+
+    async def delete(self, measurement_id: int) -> bool:
+        measurement = await self.session.get(MeasurementModel, measurement_id)
+        if measurement is None:
+            return False
+
+        await self.session.delete(measurement)
+        try:
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
+        return True

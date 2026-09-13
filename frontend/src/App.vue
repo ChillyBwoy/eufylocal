@@ -76,7 +76,7 @@ onMounted(async () => {
             <MeasurementHistoryChart :measurements="result" />
           </div>
 
-          <MeasurementHistoryCard :measurements="result" class="h-full" />
+          <MeasurementHistoryCard :measurements="result" class="h-full" @updated="() => void dispatch()" />
         </div>
       </template>
     </UseApiState>
