@@ -4,7 +4,7 @@ import { MudaTable, MudaTableCell, MudaTableHead, MudaTableRow } from "@mudakit/
 import { computed } from "vue";
 
 import { type Measurement } from "@/api";
-import { formatTime } from "@/common/format";
+import { formatDateTime } from "@/common/format";
 
 const props = defineProps<{
   measurements: Measurement[];
@@ -53,7 +53,9 @@ const groupedMeasurement = computed(() => {
                 'border-b-0!': i < measurements.length - 1,
               }"
             >
-              <MudaTableCell class="pl-4! whitespace-nowrap">{{ formatTime(measurement.measured_at) }}</MudaTableCell>
+              <MudaTableCell class="pl-4! whitespace-nowrap">
+                {{ formatDateTime(measurement.measured_at, "time") }}
+              </MudaTableCell>
               <MudaTableCell class="font-mono font-semibold tabular-nums">
                 {{ measurement.weight.toFixed(2) }} {{ measurement.unit }}
               </MudaTableCell>
