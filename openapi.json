@@ -276,6 +276,16 @@
           "raw_data": {
             "type": "string",
             "title": "Raw Data"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/User"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -285,7 +295,8 @@
           "weight",
           "unit",
           "impedance_ohm",
-          "raw_data"
+          "raw_data",
+          "user"
         ],
         "title": "Measurement"
       },
@@ -296,6 +307,29 @@
           "lb"
         ],
         "title": "MeasurementUnit"
+      },
+      "User": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "color": {
+            "type": "string",
+            "title": "Color"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "color"
+        ],
+        "title": "User"
       },
       "ValidationError": {
         "properties": {

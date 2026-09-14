@@ -6,8 +6,8 @@ import { computed, ref } from "vue";
 
 import { type Measurement } from "@/api";
 import { formatDateTime } from "@/common/format";
-
-import MeasureDeleteDialog from "./MeasureDeleteDialog.vue";
+import MeasureDeleteDialog from "@/components/MeasureDeleteDialog.vue";
+import UserBadge from "@/components/UserBadge.vue";
 
 const props = defineProps<{
   measurements: Measurement[];
@@ -44,15 +44,16 @@ const groupedMeasurement = computed(() => {
         <template #head>
           <MudaTableRow>
             <MudaTableHead class="w-[15%] text-left">Time</MudaTableHead>
-            <MudaTableHead class="w-[30%] text-left">Weight</MudaTableHead>
-            <MudaTableHead class="text-left">Impedance</MudaTableHead>
+            <MudaTableHead class="w-[15%] text-left">Weight</MudaTableHead>
+            <MudaTableHead class="w-[15%] text-left">Impedance</MudaTableHead>
+            <MudaTableHead class="text-left">User</MudaTableHead>
             <MudaTableHead class="w-20" />
           </MudaTableRow>
         </template>
         <template #body>
           <template v-for="[date, measurements] in groupedMeasurement" :key="date">
             <MudaTableRow class="border-b-0!">
-              <MudaTableCell colspan="3">
+              <MudaTableCell colspan="4">
                 <h3 class="font-mono text-sm">{{ date }}</h3>
               </MudaTableCell>
             </MudaTableRow>
@@ -72,8 +73,12 @@ const groupedMeasurement = computed(() => {
               <MudaTableCell class="font-mono font-semibold tabular-nums">
                 {{ measurement.weight.toFixed(2) }} {{ measurement.unit }}
               </MudaTableCell>
+
               <MudaTableCell class="font-mono tabular-nums">
                 {{ measurement.impedance_ohm === null ? "--" : `${measurement.impedance_ohm.toFixed(1)} Ω` }}
+              </MudaTableCell>
+              <MudaTableCell>
+                <UserBadge :user="measurement.user" />
               </MudaTableCell>
               <MudaTableCell>
                 <div class="flex items-center justify-end">

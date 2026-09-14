@@ -4,6 +4,7 @@ import { Chart, type ChartData, type ChartOptions } from "chart.js/auto";
 import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
 
 import type { Measurement } from "@/api";
+import { DEFAULT_USER_COLOR } from "@/common/color";
 import { formatDateTime } from "@/common/format";
 
 const props = defineProps<{
@@ -13,6 +14,7 @@ const props = defineProps<{
 const chartCanvas = useTemplateRef("chartCanvas");
 
 const chart = ref<Chart | null>(null);
+const chartMeasurements = computed(() => [...props.measurements].reverse());
 const chartOptions = computed(
   () =>
     ({
@@ -24,7 +26,19 @@ const chartOptions = computed(
       },
       plugins: {
         legend: {
-          display: false,
+          display: true,
+          labels: {
+            usePointStyle: true,
+            boxWidth: 8,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            afterLabel: (context) => {
+              const measurement = chartMeasurements.value[context.dataIndex];
+              return measurement == null ? "" : `User: ${measurement.user?.name ?? "Unassigned"}`;
+            },
+          },
         },
       },
       scales: {
@@ -41,15 +55,29 @@ const chartOptions = computed(
     }) satisfies ChartOptions,
 );
 const chartData = computed(() => {
-  const data = [...props.measurements].reverse();
+  const users = new Map<number | null, { name: string; color: string }>();
+  for (const measurement of chartMeasurements.value) {
+    const id = measurement.user?.id ?? null;
+    users.set(id, {
+      name: measurement.user?.name ?? "Unassigned",
+      color: measurement.user?.color ?? DEFAULT_USER_COLOR,
+    });
+  }
+
   return {
-    labels: data.map((item) => formatDateTime(item.measured_at, "date")),
-    datasets: [
-      {
-        data: data.map((item) => item.weight),
-        fill: false,
-      },
-    ],
+    labels: chartMeasurements.value.map((item) => formatDateTime(item.measured_at, "date")),
+    datasets: [...users.entries()].map(([userId, user]) => ({
+      label: user.name,
+      data: chartMeasurements.value.map((item) => ((item.user?.id ?? null) === userId ? item.weight : null)),
+      borderColor: user.color,
+      backgroundColor: user.color,
+      pointBackgroundColor: user.color,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      tension: 0.25,
+      spanGaps: true,
+      fill: false,
+    })),
   } satisfies ChartData;
 });
 

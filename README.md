@@ -93,7 +93,16 @@ make db-seed
 ```
 
 Use `make db-seed WEEKS=12` to generate the same sampling pattern across a longer period. The
-command only connects to PostgreSQL on localhost and replaces all existing measurements.
+command only connects to PostgreSQL on localhost and replaces all existing users and measurements.
+
+Reassign all existing measurements to the user whose latest known weight is closest:
+
+```bash
+make db-reassign-users
+```
+
+The command only connects to PostgreSQL on localhost. Users without an assigned measurement cannot
+be used as weight references.
 
 ## HTTP API
 

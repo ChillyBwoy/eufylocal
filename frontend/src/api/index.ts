@@ -22,5 +22,6 @@ export type {
   HttpValidationError,
   Measurement,
   MeasurementUnit,
+  User,
   ValidationError,
 } from "./types.gen";

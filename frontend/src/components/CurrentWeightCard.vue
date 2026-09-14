@@ -2,14 +2,16 @@
 import { MudaCard } from "@mudakit/ui/MudaCard";
 import { computed } from "vue";
 
-import { type MeasurementUnit } from "@/api";
+import { type MeasurementUnit, type User } from "@/api";
 import { formatDateTime, formatWeight } from "@/common/format";
+import UserBadge from "@/components/UserBadge.vue";
 
 const props = defineProps<{
   weight: number | null;
   liveWeight: number | null;
   unit: MeasurementUnit;
   measuredAt: string | null;
+  user: User | null;
 }>();
 
 const measuredAtFormatted = computed(() => {
@@ -29,6 +31,7 @@ const measuredAtFormatted = computed(() => {
           <span class="bg-muda-success animate-pulse-ring size-2 rounded-full motion-reduce:animate-none"></span>
           Live
         </span>
+        <UserBadge v-else :user="user" />
       </div>
 
       <div>

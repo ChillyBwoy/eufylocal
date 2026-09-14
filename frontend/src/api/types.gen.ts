@@ -49,12 +49,31 @@ export type Measurement = {
    * Raw Data
    */
   raw_data: string;
+  user: User | null;
 };
 
 /**
  * MeasurementUnit
  */
 export type MeasurementUnit = "kg" | "lb";
+
+/**
+ * User
+ */
+export type User = {
+  /**
+   * Id
+   */
+  id: number;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Color
+   */
+  color: string;
+};
 
 /**
  * ValidationError
