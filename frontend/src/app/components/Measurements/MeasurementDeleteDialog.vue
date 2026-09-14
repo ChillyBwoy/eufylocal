@@ -4,9 +4,9 @@ import { MudaDialog } from "@mudakit/ui/MudaDialog";
 import { computed } from "vue";
 
 import { deleteMeasurement, type Measurement } from "@/api";
+import UserBadge from "@/app/components/User/UserBadge.vue";
+import { useApi } from "@/app/composables/useApi";
 import { formatDateTime } from "@/common/format";
-import UserBadge from "@/components/UserBadge.vue";
-import { useApi } from "@/composables/useApi";
 
 const measurement = defineModel<Measurement | null>({
   required: true,

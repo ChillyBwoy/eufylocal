@@ -2,7 +2,7 @@
 import { MudaButton } from "@mudakit/ui/MudaButton";
 import { MudaIcon } from "@mudakit/ui/MudaIcon";
 
-import { useTheme } from "@/composables/useTheme";
+import { useTheme } from "@/app/composables/useTheme";
 
 const { isDark, toggleTheme } = useTheme();
 </script>

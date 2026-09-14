@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { MudaCard } from "@mudakit/ui";
 import { Chart, type ChartData, type ChartOptions } from "chart.js/auto";
 import { computed, onMounted, ref, useTemplateRef, watch } from "vue";
 
@@ -120,9 +119,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <MudaCard>
-    <div class="absolute inset-4">
-      <canvas ref="chartCanvas" />
-    </div>
-  </MudaCard>
+  <div class="absolute inset-4">
+    <canvas ref="chartCanvas" />
+  </div>
 </template>

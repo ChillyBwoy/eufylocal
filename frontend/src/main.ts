@@ -3,6 +3,9 @@ import "@mudakit/ui/style.css";
 
 import { createApp } from "vue";
 
-import App from "./App.vue";
+import App from "@/app/App.vue";
+import router from "@/app/router/index.ts";
 
-createApp(App).mount("#app");
+const app = createApp(App);
+app.use(router);
+app.mount("#app");
