@@ -1,7 +1,9 @@
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Query, Response, status
 
+from eufylocal.db.exceptions import DbEntityNotFoundError
 from eufylocal.di import MeasurementRepositoryDep
-from eufylocal.schemas.measurement import Measurement
+from eufylocal.exceptions import HTTPError
+from eufylocal.schemas.measurement import Measurement, MeasurementUpdate
 
 router = APIRouter(tags=["measurements"], prefix="/measurements")
 
@@ -23,6 +25,19 @@ async def latest_measurement(
     return Measurement.model_validate(latest) if latest else None
 
 
+@router.patch("/{measurement_id}", response_model=Measurement, operation_id="update_measurement")
+async def update_measurement(
+    measurement_id: int,
+    payload: MeasurementUpdate,
+    repository: MeasurementRepositoryDep,
+) -> Measurement:
+    try:
+        measurement = await repository.update_user(measurement_id, payload.user_id)
+        return Measurement.model_validate(measurement)
+    except DbEntityNotFoundError as error:
+        raise HTTPError(status_code=status.HTTP_404_NOT_FOUND, detail="Entity not found") from error
+
+
 @router.delete(
     "/{measurement_id}",
     status_code=status.HTTP_204_NO_CONTENT,
@@ -33,6 +48,6 @@ async def delete_measurement(
     repository: MeasurementRepositoryDep,
 ) -> Response:
     if not await repository.delete(measurement_id):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Measurement not found")
+        raise HTTPError(status_code=status.HTTP_404_NOT_FOUND, detail="Measurement not found")
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -58,6 +58,16 @@ export type Measurement = {
 export type MeasurementUnit = "kg" | "lb";
 
 /**
+ * MeasurementUpdate
+ */
+export type MeasurementUpdate = {
+  /**
+   * User Id
+   */
+  user_id: number | null;
+};
+
+/**
  * User
  */
 export type User = {
@@ -251,6 +261,48 @@ export type DeleteMeasurementResponses = {
 };
 
 export type DeleteMeasurementResponse = DeleteMeasurementResponses[keyof DeleteMeasurementResponses];
+
+export type UpdateMeasurementData = {
+  body: MeasurementUpdate;
+  path: {
+    /**
+     * Measurement Id
+     */
+    measurement_id: number;
+  };
+  query?: never;
+  url: "/api/measurements/{measurement_id}";
+};
+
+export type UpdateMeasurementErrors = {
+  /**
+   * Unauthorized
+   */
+  401: HttpError;
+  /**
+   * Forbidden
+   */
+  403: HttpError;
+  /**
+   * Not Found
+   */
+  404: HttpError;
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UpdateMeasurementError = UpdateMeasurementErrors[keyof UpdateMeasurementErrors];
+
+export type UpdateMeasurementResponses = {
+  /**
+   * Successful Response
+   */
+  200: Measurement;
+};
+
+export type UpdateMeasurementResponse = UpdateMeasurementResponses[keyof UpdateMeasurementResponses];
 
 export type GetUsersData = {
   body?: never;

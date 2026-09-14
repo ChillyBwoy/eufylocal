@@ -8,6 +8,7 @@ export {
   getMeasurements,
   getUsers,
   type Options,
+  updateMeasurement,
   updateUser,
 } from "./sdk.gen";
 export type {
@@ -46,6 +47,12 @@ export type {
   HttpValidationError,
   Measurement,
   MeasurementUnit,
+  MeasurementUpdate,
+  UpdateMeasurementData,
+  UpdateMeasurementError,
+  UpdateMeasurementErrors,
+  UpdateMeasurementResponse,
+  UpdateMeasurementResponses,
   UpdateUserData,
   UpdateUserError,
   UpdateUserErrors,

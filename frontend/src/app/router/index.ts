@@ -7,7 +7,7 @@ const router = createRouter({
   routes: [
     {
       ...routes.dashboard(),
-      component: () => import("@/app/views/DashboardView.vue"),
+      component: () => import("@/app/views/Dashboard/DashboardView.vue"),
     },
     {
       ...routes.users(),

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MudaDialog } from "@mudakit/ui/MudaDialog";
+import { MudaDialog } from "@mudakit/ui";
 import { computed } from "vue";
 
 import { deleteUser, type User } from "@/api";

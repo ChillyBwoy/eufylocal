@@ -21,3 +21,7 @@ class Measurement(BaseModel):
     impedance_ohm: float | None
     raw_data: str
     user: User | None
+
+
+class MeasurementUpdate(BaseModel):
+    user_id: int | None

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { MudaButton } from "@mudakit/ui/MudaButton";
-import { MudaIcon } from "@mudakit/ui/MudaIcon";
+import { MudaButton, MudaIcon } from "@mudakit/ui";
 
 import { useTheme } from "@/app/composables/useTheme";
 

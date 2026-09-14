@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { MudaButton } from "@mudakit/ui/MudaButton";
-import { MudaDialog } from "@mudakit/ui/MudaDialog";
+import { MudaButton, MudaDialog } from "@mudakit/ui";
 import { computed } from "vue";
 
 import { deleteMeasurement, type Measurement } from "@/api";

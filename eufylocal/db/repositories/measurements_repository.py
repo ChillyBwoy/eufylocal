@@ -4,6 +4,7 @@ from sqlalchemy import ColumnExpressionArgument, ScalarSelect, case, func, selec
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from eufylocal.db.exceptions import DbEntityNotFoundError
 from eufylocal.db.models import MeasurementModel, UserModel
 from eufylocal.schemas.measurement import MeasurementUnit
 
@@ -133,6 +134,28 @@ class MeasurementRepository:
             MeasurementModel.id.desc(),
         ).limit(1)
         return await self.session.scalar(stmt)
+
+    async def update_user(
+        self,
+        measurement_id: int,
+        user_id: int | None,
+    ) -> MeasurementModel:
+        """Assign a user to a measurement and return it."""
+        measurement = await self.session.get(MeasurementModel, measurement_id)
+        if measurement is None:
+            raise DbEntityNotFoundError(MeasurementModel)
+
+        user = await self.session.get(UserModel, user_id) if user_id is not None else None
+        if user_id is not None and user is None:
+            raise DbEntityNotFoundError(UserModel)
+
+        measurement.user = user
+        try:
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
+        return measurement
 
     async def delete(self, measurement_id: int) -> bool:
         measurement = await self.session.get(MeasurementModel, measurement_id)

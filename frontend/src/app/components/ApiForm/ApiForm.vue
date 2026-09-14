@@ -1,9 +1,5 @@
 <script setup lang="ts" generic="TResult, TFormFields extends Record<string, any>">
-import type { MudaComponentVariant } from "@mudakit/ui";
-import { MudaButton } from "@mudakit/ui/MudaButton";
-import { MudaFormFieldErrors } from "@mudakit/ui/MudaFormField";
-import { MudaFormInput } from "@mudakit/ui/MudaFormInput";
-import { MudaSpinner } from "@mudakit/ui/MudaSpinner";
+import { MudaButton, type MudaComponentVariant, MudaFormFieldErrors, MudaFormInput, MudaSpinner } from "@mudakit/ui";
 import { computed, type PropType, ref, watch } from "vue";
 
 import type { UseApiState } from "@/app/composables/useApi";

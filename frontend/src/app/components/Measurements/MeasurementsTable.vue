@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { MudaButton } from "@mudakit/ui/MudaButton";
-import { MudaIcon } from "@mudakit/ui/MudaIcon";
-import { MudaTable, MudaTableCell, MudaTableHead, MudaTableRow } from "@mudakit/ui/MudaTable";
+import { MudaButton, MudaIcon, MudaTable, MudaTableCell, MudaTableHead, MudaTableRow } from "@mudakit/ui";
 import { computed, ref } from "vue";
 
-import { type Measurement } from "@/api";
+import { type Measurement, type User } from "@/api";
 import MeasureDeleteDialog from "@/app/components/Measurements/MeasurementDeleteDialog.vue";
-import UserBadge from "@/app/components/User/UserBadge.vue";
+import MeasurementsTableUser from "@/app/components/Measurements/MeasurementsTableUser.vue";
 import { formatDateTime } from "@/common/format";
+
+import UserBadge from "../User/UserBadge.vue";
 
 const props = defineProps<{
   measurements: Measurement[];
+  users: User[];
 }>();
 
 const emit = defineEmits<{
@@ -43,8 +44,8 @@ const groupedMeasurement = computed(() => {
       <template #head>
         <MudaTableRow>
           <MudaTableHead class="w-[15%] text-left">Time</MudaTableHead>
-          <MudaTableHead class="w-[15%] text-left">Weight</MudaTableHead>
-          <MudaTableHead class="w-[15%] text-left">Impedance</MudaTableHead>
+          <MudaTableHead class="w-[20%] text-left">Weight</MudaTableHead>
+          <MudaTableHead class="w-[20%] text-left">Impedance</MudaTableHead>
           <MudaTableHead class="text-left">User</MudaTableHead>
           <MudaTableHead class="w-20" />
         </MudaTableRow>
@@ -78,6 +79,7 @@ const groupedMeasurement = computed(() => {
             </MudaTableCell>
             <MudaTableCell>
               <UserBadge :user="measurement.user" />
+              <MeasurementsTableUser :measurement="measurement" :users="props.users" @updated="emit('updated')" />
             </MudaTableCell>
             <MudaTableCell>
               <div class="flex items-center justify-end">

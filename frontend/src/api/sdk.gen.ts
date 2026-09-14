@@ -21,6 +21,9 @@ import type {
   GetUsersData,
   GetUsersErrors,
   GetUsersResponses,
+  UpdateMeasurementData,
+  UpdateMeasurementErrors,
+  UpdateMeasurementResponses,
   UpdateUserData,
   UpdateUserErrors,
   UpdateUserResponses,
@@ -75,6 +78,21 @@ export const deleteMeasurement = <ThrowOnError extends boolean = false>(
   (options.client ?? client).delete<DeleteMeasurementResponses, DeleteMeasurementErrors, ThrowOnError>({
     url: "/api/measurements/{measurement_id}",
     ...options,
+  });
+
+/**
+ * Update Measurement
+ */
+export const updateMeasurement = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateMeasurementData, ThrowOnError>,
+): RequestResult<UpdateMeasurementResponses, UpdateMeasurementErrors, ThrowOnError> =>
+  (options.client ?? client).patch<UpdateMeasurementResponses, UpdateMeasurementErrors, ThrowOnError>({
+    url: "/api/measurements/{measurement_id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
 
 /**
