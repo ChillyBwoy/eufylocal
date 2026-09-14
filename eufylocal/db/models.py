@@ -28,7 +28,10 @@ class UserModel(BaseModel):
     name: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     color: Mapped[str] = mapped_column(Text, nullable=False)
 
-    measurements: Mapped[list[MeasurementModel]] = relationship(back_populates="user")
+    measurements: Mapped[list[MeasurementModel]] = relationship(
+        back_populates="user",
+        passive_deletes=True,
+    )
 
 
 class MeasurementModel(BaseModel):

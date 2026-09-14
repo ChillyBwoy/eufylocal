@@ -108,6 +108,10 @@ be used as weight references.
 
 * `GET /api/measurements/?limit=50` returns measurements in descending timestamp order.
 * `GET /api/measurements/latest` returns the latest measurement or `null`.
+* `GET /api/users/` returns users ordered by name.
+* `POST /api/users/` creates a user.
+* `PATCH /api/users/{user_id}` updates a user.
+* `DELETE /api/users/{user_id}` deletes a user without deleting their measurements.
 * `GET /api/sse/` streams a ready message, a status message for each frame while a weighing
   stabilizes, and a single refresh message once the final frame is stored.
 

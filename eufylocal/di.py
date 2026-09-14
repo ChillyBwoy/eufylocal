@@ -5,7 +5,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from eufylocal.db import session as db_session
-from eufylocal.db.repositories import MeasurementRepository
+from eufylocal.db.repositories import MeasurementRepository, UserRepository
 from eufylocal.sse_manager import SSEManager, sse_manager
 
 
@@ -31,3 +31,12 @@ MeasurementRepositoryDep = Annotated[
     MeasurementRepository,
     Depends(get_measurement_repo),
 ]
+
+
+def get_user_repo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserRepository:
+    return UserRepository(db)
+
+
+UserRepositoryDep = Annotated[UserRepository, Depends(get_user_repo)]
