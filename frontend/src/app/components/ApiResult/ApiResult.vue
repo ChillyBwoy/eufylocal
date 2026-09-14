@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="T">
 import { computed } from "vue";
 
-import { type UseApiState as ApiState } from "@/composables/useApi";
+import { type UseApiState as ApiState } from "@/app/composables/useApi";
 
 const props = defineProps<{
   state: ApiState<T>;

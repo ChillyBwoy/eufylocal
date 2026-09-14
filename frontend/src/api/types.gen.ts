@@ -49,12 +49,59 @@ export type Measurement = {
    * Raw Data
    */
   raw_data: string;
+  user: User | null;
 };
 
 /**
  * MeasurementUnit
  */
 export type MeasurementUnit = "kg" | "lb";
+
+/**
+ * User
+ */
+export type User = {
+  /**
+   * Id
+   */
+  id: number;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Color
+   */
+  color: string;
+};
+
+/**
+ * UserCreate
+ */
+export type UserCreate = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Color
+   */
+  color: string;
+};
+
+/**
+ * UserUpdate
+ */
+export type UserUpdate = {
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Color
+   */
+  color?: string | null;
+};
 
 /**
  * ValidationError
@@ -204,3 +251,159 @@ export type DeleteMeasurementResponses = {
 };
 
 export type DeleteMeasurementResponse = DeleteMeasurementResponses[keyof DeleteMeasurementResponses];
+
+export type GetUsersData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: "/api/users/";
+};
+
+export type GetUsersErrors = {
+  /**
+   * Unauthorized
+   */
+  401: HttpError;
+  /**
+   * Forbidden
+   */
+  403: HttpError;
+  /**
+   * Not Found
+   */
+  404: HttpError;
+};
+
+export type GetUsersError = GetUsersErrors[keyof GetUsersErrors];
+
+export type GetUsersResponses = {
+  /**
+   * Response Get Users
+   *
+   * Successful Response
+   */
+  200: Array<User>;
+};
+
+export type GetUsersResponse = GetUsersResponses[keyof GetUsersResponses];
+
+export type CreateUserData = {
+  body: UserCreate;
+  path?: never;
+  query?: never;
+  url: "/api/users/";
+};
+
+export type CreateUserErrors = {
+  /**
+   * Unauthorized
+   */
+  401: HttpError;
+  /**
+   * Forbidden
+   */
+  403: HttpError;
+  /**
+   * Not Found
+   */
+  404: HttpError;
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CreateUserError = CreateUserErrors[keyof CreateUserErrors];
+
+export type CreateUserResponses = {
+  /**
+   * Successful Response
+   */
+  201: User;
+};
+
+export type CreateUserResponse = CreateUserResponses[keyof CreateUserResponses];
+
+export type DeleteUserData = {
+  body?: never;
+  path: {
+    /**
+     * User Id
+     */
+    user_id: number;
+  };
+  query?: never;
+  url: "/api/users/{user_id}";
+};
+
+export type DeleteUserErrors = {
+  /**
+   * Unauthorized
+   */
+  401: HttpError;
+  /**
+   * Forbidden
+   */
+  403: HttpError;
+  /**
+   * Not Found
+   */
+  404: HttpError;
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DeleteUserError = DeleteUserErrors[keyof DeleteUserErrors];
+
+export type DeleteUserResponses = {
+  /**
+   * Successful Response
+   */
+  204: void;
+};
+
+export type DeleteUserResponse = DeleteUserResponses[keyof DeleteUserResponses];
+
+export type UpdateUserData = {
+  body: UserUpdate;
+  path: {
+    /**
+     * User Id
+     */
+    user_id: number;
+  };
+  query?: never;
+  url: "/api/users/{user_id}";
+};
+
+export type UpdateUserErrors = {
+  /**
+   * Unauthorized
+   */
+  401: HttpError;
+  /**
+   * Forbidden
+   */
+  403: HttpError;
+  /**
+   * Not Found
+   */
+  404: HttpError;
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UpdateUserError = UpdateUserErrors[keyof UpdateUserErrors];
+
+export type UpdateUserResponses = {
+  /**
+   * Successful Response
+   */
+  200: User;
+};
+
+export type UpdateUserResponse = UpdateUserResponses[keyof UpdateUserResponses];

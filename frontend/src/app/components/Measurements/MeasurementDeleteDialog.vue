@@ -4,8 +4,9 @@ import { MudaDialog } from "@mudakit/ui/MudaDialog";
 import { computed } from "vue";
 
 import { deleteMeasurement, type Measurement } from "@/api";
+import UserBadge from "@/app/components/User/UserBadge.vue";
+import { useApi } from "@/app/composables/useApi";
 import { formatDateTime } from "@/common/format";
-import { useApi } from "@/composables/useApi";
 
 const measurement = defineModel<Measurement | null>({
   required: true,
@@ -39,6 +40,7 @@ const onDelete = async () => {
     <div class="flex flex-col gap-2">
       <h2>Delete Measurement?</h2>
       <template v-if="measurement != null">
+        <UserBadge :user="measurement.user" />
         <p>{{ measurement.weight.toFixed(2) }} {{ measurement.unit }}</p>
         <p>{{ formatDateTime(measurement.measured_at, "datetime") }}</p>
       </template>

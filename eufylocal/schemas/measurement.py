@@ -3,6 +3,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
+from eufylocal.schemas.user import User
+
 
 class MeasurementUnit(StrEnum):
     KG = "kg"
@@ -18,3 +20,4 @@ class Measurement(BaseModel):
     unit: MeasurementUnit
     impedance_ohm: float | None
     raw_data: str
+    user: User | None
