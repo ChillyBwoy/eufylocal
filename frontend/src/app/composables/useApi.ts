@@ -77,6 +77,7 @@ export function useApi<T = unknown, A extends unknown[] = [], E = unknown>(
       if (requestId === lastRequestId.value) {
         state.value = { status: "failure", error: error as E, prevResult };
       }
+      throw error;
     }
   };
 

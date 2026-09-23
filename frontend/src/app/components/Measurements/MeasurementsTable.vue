@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { MudaButton, MudaIcon, MudaTable, MudaTableCell, MudaTableHead, MudaTableRow } from "@mudakit/ui";
+import { MudaTable, MudaTableCell, MudaTableHead, MudaTableRow } from "@mudakit/ui";
 import { computed, ref } from "vue";
 
 import { type Measurement, type User } from "@/api";
-import MeasureDeleteDialog from "@/app/components/Measurements/MeasurementDeleteDialog.vue";
-import MeasurementsTableUser from "@/app/components/Measurements/MeasurementsTableUser.vue";
+import MeasurementActions from "@/app/components/Measurements/MeasurementActions.vue";
+import MeasurementDeleteDialog from "@/app/components/Measurements/MeasurementDeleteDialog.vue";
+import MeasurementUserDialog from "@/app/components/Measurements/MeasurementUserDialog.vue";
 import { formatDateTime } from "@/common/format";
 
 import UserBadge from "../User/UserBadge.vue";
@@ -18,6 +19,7 @@ const emit = defineEmits<{
   (e: "updated"): void;
 }>();
 
+const measurementToUpdate = ref<Measurement | null>(null);
 const measurementToDelete = ref<Measurement | null>(null);
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -47,13 +49,13 @@ const groupedMeasurement = computed(() => {
           <MudaTableHead class="w-[20%] text-left">Weight</MudaTableHead>
           <MudaTableHead class="w-[20%] text-left">Impedance</MudaTableHead>
           <MudaTableHead class="text-left">User</MudaTableHead>
-          <MudaTableHead class="w-20" />
+          <MudaTableHead class="w-14" />
         </MudaTableRow>
       </template>
       <template #body>
         <template v-for="[date, measurements] in groupedMeasurement" :key="date">
           <MudaTableRow class="border-b-0!">
-            <MudaTableCell colspan="4">
+            <MudaTableCell colspan="5">
               <h3 class="font-mono text-sm">{{ date }}</h3>
             </MudaTableCell>
           </MudaTableRow>
@@ -79,24 +81,21 @@ const groupedMeasurement = computed(() => {
             </MudaTableCell>
             <MudaTableCell>
               <UserBadge :user="measurement.user" />
-              <MeasurementsTableUser :measurement="measurement" :users="props.users" @updated="emit('updated')" />
             </MudaTableCell>
             <MudaTableCell>
               <div class="flex items-center justify-end">
-                <MudaButton
-                  variant="danger"
-                  size="small"
-                  class="invisible group-hover:visible"
-                  @click="measurementToDelete = measurement"
-                >
-                  <MudaIcon icon="delete:outlined" />
-                </MudaButton>
+                <MeasurementActions
+                  :measurement="measurement"
+                  @update="measurementToUpdate = $event"
+                  @delete="measurementToDelete = $event"
+                />
               </div>
             </MudaTableCell>
           </MudaTableRow>
         </template>
       </template>
     </MudaTable>
-    <MeasureDeleteDialog :model-value="measurementToDelete" @deleted="emit('updated')" />
+    <MeasurementUserDialog v-model="measurementToUpdate" :users="props.users" @updated="emit('updated')" />
+    <MeasurementDeleteDialog v-model="measurementToDelete" @deleted="emit('updated')" />
   </div>
 </template>

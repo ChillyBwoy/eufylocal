@@ -14,7 +14,7 @@
     "openapi": "openapi-ts"
   },
   "dependencies": {
-    "@mudakit/ui": "^0.4.0",
+    "@mudakit/ui": "^0.5.0",
     "chart.js": "^4.5.1",
     "lodash-es": "^4.18.1",
     "vue": "^3.5.41",

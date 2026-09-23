@@ -15,7 +15,7 @@ const emit = defineEmits<{
 }>();
 
 const actions = computed<MudaDropdownItem<"edit" | "delete">[]>(() => [
-  { id: "edit", label: "Edit", icon: "edit:filled", variant: "warning" },
+  { id: "edit", label: "Edit", icon: "edit:filled" },
   { id: "delete", label: "Delete", icon: "delete:filled", variant: "danger" },
 ]);
 
