@@ -1,3 +1,3 @@
-from eufylocal.db.models import MeasurementModel
+from eufylocal.db.models import MeasurementModel, UserModel
 
-__all__ = ["MeasurementModel"]
+__all__ = ["MeasurementModel", "UserModel"]

@@ -93,12 +93,25 @@ make db-seed
 ```
 
 Use `make db-seed WEEKS=12` to generate the same sampling pattern across a longer period. The
-command only connects to PostgreSQL on localhost and replaces all existing measurements.
+command only connects to PostgreSQL on localhost and replaces all existing users and measurements.
+
+Reassign all existing measurements to the user whose latest known weight is closest:
+
+```bash
+make db-reassign-users
+```
+
+The command only connects to PostgreSQL on localhost. Users without an assigned measurement cannot
+be used as weight references.
 
 ## HTTP API
 
 * `GET /api/measurements/?limit=50` returns measurements in descending timestamp order.
 * `GET /api/measurements/latest` returns the latest measurement or `null`.
+* `GET /api/users/` returns users ordered by name.
+* `POST /api/users/` creates a user.
+* `PATCH /api/users/{user_id}` updates a user.
+* `DELETE /api/users/{user_id}` deletes a user without deleting their measurements.
 * `GET /api/sse/` streams a ready message, a status message for each frame while a weighing
   stabilizes, and a single refresh message once the final frame is stored.
 

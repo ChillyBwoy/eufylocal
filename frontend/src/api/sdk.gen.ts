@@ -3,15 +3,30 @@
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from "./client";
 import { client } from "./client.gen";
 import type {
+  CreateUserData,
+  CreateUserErrors,
+  CreateUserResponses,
   DeleteMeasurementData,
   DeleteMeasurementErrors,
   DeleteMeasurementResponses,
+  DeleteUserData,
+  DeleteUserErrors,
+  DeleteUserResponses,
   GetLatestMeasurementData,
   GetLatestMeasurementErrors,
   GetLatestMeasurementResponses,
   GetMeasurementsData,
   GetMeasurementsErrors,
   GetMeasurementsResponses,
+  GetUsersData,
+  GetUsersErrors,
+  GetUsersResponses,
+  UpdateMeasurementData,
+  UpdateMeasurementErrors,
+  UpdateMeasurementResponses,
+  UpdateUserData,
+  UpdateUserErrors,
+  UpdateUserResponses,
 } from "./types.gen";
 
 export type Options<
@@ -63,4 +78,68 @@ export const deleteMeasurement = <ThrowOnError extends boolean = false>(
   (options.client ?? client).delete<DeleteMeasurementResponses, DeleteMeasurementErrors, ThrowOnError>({
     url: "/api/measurements/{measurement_id}",
     ...options,
+  });
+
+/**
+ * Update Measurement
+ */
+export const updateMeasurement = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateMeasurementData, ThrowOnError>,
+): RequestResult<UpdateMeasurementResponses, UpdateMeasurementErrors, ThrowOnError> =>
+  (options.client ?? client).patch<UpdateMeasurementResponses, UpdateMeasurementErrors, ThrowOnError>({
+    url: "/api/measurements/{measurement_id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Users
+ */
+export const getUsers = <ThrowOnError extends boolean = false>(
+  options?: Options<GetUsersData, ThrowOnError>,
+): RequestResult<GetUsersResponses, GetUsersErrors, ThrowOnError> =>
+  (options?.client ?? client).get<GetUsersResponses, GetUsersErrors, ThrowOnError>({ url: "/api/users/", ...options });
+
+/**
+ * Create User
+ */
+export const createUser = <ThrowOnError extends boolean = false>(
+  options: Options<CreateUserData, ThrowOnError>,
+): RequestResult<CreateUserResponses, CreateUserErrors, ThrowOnError> =>
+  (options.client ?? client).post<CreateUserResponses, CreateUserErrors, ThrowOnError>({
+    url: "/api/users/",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete User
+ */
+export const deleteUser = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteUserData, ThrowOnError>,
+): RequestResult<DeleteUserResponses, DeleteUserErrors, ThrowOnError> =>
+  (options.client ?? client).delete<DeleteUserResponses, DeleteUserErrors, ThrowOnError>({
+    url: "/api/users/{user_id}",
+    ...options,
+  });
+
+/**
+ * Update User
+ */
+export const updateUser = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateUserData, ThrowOnError>,
+): RequestResult<UpdateUserResponses, UpdateUserErrors, ThrowOnError> =>
+  (options.client ?? client).patch<UpdateUserResponses, UpdateUserErrors, ThrowOnError>({
+    url: "/api/users/{user_id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
   });
