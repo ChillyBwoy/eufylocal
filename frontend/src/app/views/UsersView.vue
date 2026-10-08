@@ -8,13 +8,16 @@ import UserCreateDialog from "@/app/components/User/UserCreateDialog.vue";
 import UserDeleteDialog from "@/app/components/User/UserDeleteDialog.vue";
 import UserEditDialog from "@/app/components/User/UserEditDialog.vue";
 import UserListItem from "@/app/components/User/UserListItem.vue";
-import { useApi } from "@/app/composables/useApi";
+import { useAsyncCall } from "@/app/composables/useAsyncCall";
 
 const isCreateDialogOpen = ref(false);
 const userToEdit = ref<User | null>(null);
 const userToDelete = ref<User | null>(null);
 
-const users = useApi(() => getUsers({ throwOnError: true }));
+const users = useAsyncCall(async ({ signal }) => {
+  const { data } = await getUsers({ signal, throwOnError: true });
+  return data;
+});
 
 onMounted(() => {
   void users.dispatch();
