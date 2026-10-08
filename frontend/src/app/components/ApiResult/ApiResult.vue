@@ -1,10 +1,10 @@
 <script setup lang="ts" generic="T">
 import { computed } from "vue";
 
-import { type UseApiState as ApiState } from "@/app/composables/useApi";
+import { type AsyncCallState as ApiState } from "@/app/composables/useAsyncCall";
 
 const props = defineProps<{
-  state: ApiState<T>;
+  state: ApiState<T, unknown>;
 }>();
 
 defineSlots<{

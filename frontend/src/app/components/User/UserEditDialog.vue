@@ -4,7 +4,7 @@ import { computed, ref, watch } from "vue";
 
 import { updateUser, type User } from "@/api";
 import ApiForm from "@/app/components/ApiForm/ApiForm.vue";
-import { useApi } from "@/app/composables/useApi";
+import { useAsyncCall } from "@/app/composables/useAsyncCall";
 import type { AppFormErrors } from "@/app/error";
 
 const user = defineModel<User | null>({ required: true });
@@ -28,13 +28,15 @@ const formData = ref<UserFormData>({
 
 const formErrors = ref<AppFormErrors<UserFormData>>();
 
-const mutation = useApi((id: number) =>
-  updateUser({
+const mutation = useAsyncCall(async ({ signal }, id: number) => {
+  const { data } = await updateUser({
     path: { user_id: id },
     body: formData.value,
+    signal,
     throwOnError: true,
-  }),
-);
+  });
+  return data;
+});
 
 const close = () => {
   user.value = null;

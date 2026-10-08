@@ -4,7 +4,7 @@ import { ref } from "vue";
 
 import { createUser, type User, type UserCreate } from "@/api";
 import ApiForm from "@/app/components/ApiForm/ApiForm.vue";
-import { useApi } from "@/app/composables/useApi";
+import { useAsyncCall } from "@/app/composables/useAsyncCall";
 import type { AppFormErrors } from "@/app/error";
 import { DEFAULT_USER_COLOR } from "@/common/color";
 
@@ -23,7 +23,10 @@ const formData = ref<Partial<UserCreate>>({
 
 const formErrors = ref<AppFormErrors<UserCreate>>();
 
-const mutation = useApi(() => createUser({ body: formData.value as UserCreate, throwOnError: true }));
+const mutation = useAsyncCall(async ({ signal }) => {
+  const { data } = await createUser({ body: formData.value as UserCreate, signal, throwOnError: true });
+  return data;
+});
 
 const close = () => {
   isOpen.value = false;

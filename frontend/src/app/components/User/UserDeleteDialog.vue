@@ -5,7 +5,7 @@ import { computed } from "vue";
 import { deleteUser, type User } from "@/api";
 import ApiForm from "@/app/components/ApiForm/ApiForm.vue";
 import UserBadge from "@/app/components/User/UserBadge.vue";
-import { useApi } from "@/app/composables/useApi";
+import { useAsyncCall } from "@/app/composables/useAsyncCall";
 
 const user = defineModel<User | null>({ required: true });
 
@@ -13,7 +13,10 @@ const emit = defineEmits<{
   (e: "deleted"): void;
 }>();
 
-const mutation = useApi((id: number) => deleteUser({ path: { user_id: id }, throwOnError: true }));
+const mutation = useAsyncCall(async ({ signal }, id: number) => {
+  const { data } = await deleteUser({ path: { user_id: id }, signal, throwOnError: true });
+  return data;
+});
 
 const close = () => {
   user.value = null;

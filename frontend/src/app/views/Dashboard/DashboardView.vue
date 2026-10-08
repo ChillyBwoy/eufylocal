@@ -7,13 +7,19 @@ import ApiResult from "@/app/components/ApiResult/ApiResult.vue";
 import CurrentWeight from "@/app/components/CurrentWeight/CurrentWeight.vue";
 import MeasurementsChart from "@/app/components/Measurements/MeasurementsChart.vue";
 import MeasurementsTable from "@/app/components/Measurements/MeasurementsTable.vue";
-import { useApi } from "@/app/composables/useApi";
+import { useAsyncCall } from "@/app/composables/useAsyncCall.ts";
 import { type ServerSideStatusMessage, useServerEvents } from "@/app/composables/useServerEvents";
 
 import DashboardLoader from "./DashboardLoader.vue";
 
-const fetchMeasurements = useApi(() => getMeasurements({ query: { limit: 50 }, throwOnError: true }));
-const fetchUsers = useApi(() => getUsers({ throwOnError: true }));
+const fetchMeasurements = useAsyncCall(async ({ signal }) => {
+  const { data } = await getMeasurements({ query: { limit: 50 }, signal, throwOnError: true });
+  return data;
+});
+const fetchUsers = useAsyncCall(async ({ signal }) => {
+  const { data } = await getUsers({ signal, throwOnError: true });
+  return data;
+});
 const liveMeasurement = ref<ServerSideStatusMessage | null>(null);
 
 const serverEvents = useServerEvents(

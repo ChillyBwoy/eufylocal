@@ -2,12 +2,12 @@
 import { MudaButton, type MudaComponentVariant, MudaFormFieldErrors, MudaFormInput, MudaSpinner } from "@mudakit/ui";
 import { computed, type PropType, ref, watch } from "vue";
 
-import type { UseApiState } from "@/app/composables/useApi";
+import type { AsyncCallState } from "@/app/composables/useAsyncCall";
 import { type AppFormErrors, isAPIPlainError, isAPIValidationError, mapFormValidationErrors } from "@/app/error";
 
 const props = withDefaults(
   defineProps<{
-    state: UseApiState<TResult>;
+    state: AsyncCallState<TResult, unknown>;
     submitLabel?: string;
     resetLabel?: string;
     cancelLabel?: string;

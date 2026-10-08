@@ -4,7 +4,7 @@ import { computed } from "vue";
 
 import { deleteMeasurement, type Measurement } from "@/api";
 import UserBadge from "@/app/components/User/UserBadge.vue";
-import { useApi } from "@/app/composables/useApi";
+import { useAsyncCall } from "@/app/composables/useAsyncCall";
 import { formatDateTime } from "@/common/format";
 
 const measurement = defineModel<Measurement | null>({
@@ -22,7 +22,10 @@ const isOpen = computed({
   },
 });
 
-const mutation = useApi((id: number) => deleteMeasurement({ path: { measurement_id: id } }));
+const mutation = useAsyncCall(async ({ signal }, id: number) => {
+  const { data } = await deleteMeasurement({ path: { measurement_id: id }, signal, throwOnError: true });
+  return data;
+});
 
 const onDelete = async () => {
   if (measurement.value == null) {

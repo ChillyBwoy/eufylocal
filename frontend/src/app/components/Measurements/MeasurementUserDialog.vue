@@ -4,7 +4,7 @@ import { computed, ref, watch } from "vue";
 
 import { type Measurement, updateMeasurement, type User } from "@/api";
 import ApiForm from "@/app/components/ApiForm/ApiForm.vue";
-import { useApi } from "@/app/composables/useApi";
+import { useAsyncCall } from "@/app/composables/useAsyncCall";
 import { formatDateTime } from "@/common/format";
 
 const measurement = defineModel<Measurement | null>({ required: true });
@@ -36,13 +36,15 @@ const measurementSummary = computed(() => {
   return `${measurement.value.weight.toFixed(2)} ${measurement.value.unit} · ${formatDateTime(measurement.value.measured_at, "datetime")}`;
 });
 
-const mutation = useApi((measurementId: number, userId: number | null) =>
-  updateMeasurement({
+const mutation = useAsyncCall(async ({ signal }, measurementId: number, userId: number | null) => {
+  const { data } = await updateMeasurement({
     path: { measurement_id: measurementId },
     body: { user_id: userId },
+    signal,
     throwOnError: true,
-  }),
-);
+  });
+  return data;
+});
 
 function close() {
   measurement.value = null;
